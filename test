@@ -1,0 +1,15 @@
+clear
+rm -f test-out/*.asm test-out/*.bin
+
+echo "=== Excitebike (disassemble, reassemble, verify) ==="
+python3 nesdisasm.py --no-uncommon-opcodes --no-rom-writes --no-suboptimal-absolute test-in/excitebike-ju.prg > test-out/excitebike-ju.asm
+asm6f test-out/excitebike-ju.asm test-out/excitebike-ju.bin
+diff test-in/excitebike-ju.prg test-out/excitebike-ju.bin
+echo
+
+echo "=== SMB (disassemble, reassemble, verify) ==="
+python3 nesdisasm.py --no-uncommon-opcodes --no-rom-writes --no-suboptimal-absolute test-in/smb-w.prg > test-out/smb-w.asm
+asm6f test-out/smb-w.asm test-out/smb-w.bin
+diff test-in/smb-w.prg test-out/smb-w.bin
+echo
+
