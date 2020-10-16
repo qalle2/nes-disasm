@@ -5,9 +5,6 @@ import math
 import os
 import sys
 
-# TODO: require file size to be a multiple of 256
-# TODO: require bank size to be 256/512/.../32768
-
 # addressing modes
 ADDR_MODES = {
     "imp": {"operandSize": 0, "prefix": "",  "suffix": ""},     # implied
@@ -223,10 +220,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="An NES (6502) disassembler.")
 
     parser.add_argument(
-        "--bank-size", type=int,
-        help="Size of PRG ROM banks in bytes. 1 to 32768, but the input file size must be a "
-        "multiple of this or equal to this. Default: greatest common divisor of file size and "
-        "32768."
+        "--bank-size", type=int, choices=(256, 512, 1024, 2048, 4096, 8192, 16384, 32768),
+        help="Size of PRG ROM banks in bytes. The input file size must be a multiple of this or "
+        "equal to this. Default: the greatest common divisor of file size and 32768."
     )
     parser.add_argument(
         "--origin", type=int,
@@ -286,8 +282,8 @@ def parse_arguments():
 
     parser.add_argument(
         "input_file",
-        help="The PRG ROM file to read. Size: 1 byte to 4 MiB (4,194,304 bytes). (.nes files "
-        "aren't currently supported.)"
+        help="The PRG ROM file to read. Size: 256 bytes to 4 MiB (4,194,304 bytes) and a multiple "
+        "of 256 bytes. (.nes files are not currently supported.)"
     )
 
     args = parser.parse_args()
@@ -351,7 +347,7 @@ def disassemble(handle, args):
                 return False  # pointlessly uses absolute,y instead of zeroPage,y
 
             if (args.no_mirror_access or args.no_access) \
-            and 0x0800 <= addr <= 0x1fff or 0x2008 <= addr <= 0x3fff:
+            and (0x0800 <= addr <= 0x1fff or 0x2008 <= addr <= 0x3fff):
                 return False  # accesses RAM mirrors or PPU register mirrors
 
             if (args.no_cart_space_start_access or args.no_access) and 0x4020 <= addr <= 0x5fff:
@@ -419,22 +415,21 @@ def disassemble(handle, args):
             line = "hex " + " ".join(f"{byte:02x}" for byte in data[i:i+8])
             yield f"    {line:29s}; {addr+i:04x}"
 
-    # get file size, bank size, bank count and origin
+    # get file size
     fileSize = handle.seek(0, 2)
-    if not 1 <= fileSize <= 4 * 1024 * 1024:
-        sys.exit("The input file size must be 1 byte to 4 MiB.")
+    if fileSize % 256 or not 256 <= fileSize <= 4 * 1024 * 1024:
+        sys.exit("The input file size must be 256 bytes to 4 MiB and a multiple of 256 bytes.")
 
-    # get bank size
+    # get bank size and number of banks
     bankSize = math.gcd(fileSize, 32 * 1024) if args.bank_size is None else args.bank_size
-    if not 1 <= bankSize <= 32 * 1024 or fileSize % bankSize:
-        sys.exit("Invalid bank size.")
+    if fileSize % bankSize:
+        sys.exit("File size is not equal to or a multiple of bank size.")
+    bankCount = fileSize // bankSize
 
     # get origin
     origin = 64 * 1024 - bankSize if args.origin is None else args.origin
     if not 32 * 1024 <= origin <= 64 * 1024 - bankSize:
         sys.exit("Origin must not be less than 32768 or greater than 65536 minus bank size.")
-
-    bankCount = fileSize // bankSize
 
     print(f"; Input file: {os.path.basename(handle.name)}")
     print(f"; PRG ROM size: {fileSize} (0x{fileSize:04x})")
