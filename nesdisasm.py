@@ -215,8 +215,6 @@ def parse_arguments():
     """Parse command line arguments using argparse.
     return: arguments"""
 
-    # todo: if game is NROM, use --no-rom-writes automatically
-
     parser = argparse.ArgumentParser(description="An NES (6502) disassembler.")
 
     parser.add_argument(
@@ -227,7 +225,7 @@ def parse_arguments():
     parser.add_argument(
         "--origin", type=int,
         help="The NES CPU address each PRG ROM bank starts from. Minimum: 32768. Default & "
-        "maximum: 65536 minus --bank-size."
+        "maximum: 65536 minus --bank-size. Must be a multiple of 256."
     )
     parser.add_argument(
         "--no-brk", action="store_true",
@@ -243,13 +241,9 @@ def parse_arguments():
         "instruction also supports zero page addressing."
     )
     parser.add_argument(
-        "--no-absolute-x-zp-access", action="store_true",
-        help="Assume the game never accesses zero page using absolute,x addressing."
-    )
-    parser.add_argument(
-        "--no-absolute-y-zp-access", action="store_true",
-        help="Assume the game never accesses zero page using absolute,y addressing if the "
-        "instruction also supports zeroPage,y addressing."
+        "--no-absolute-indexed-zp-access", action="store_true",
+        help="Assume the game never accesses zero page using absolute indexed addressing if the "
+        "instruction also supports the corresponding zero page indexed addressing mode."
     )
     parser.add_argument(
         "--no-mirror-access", action="store_true",
@@ -266,9 +260,8 @@ def parse_arguments():
     )
     parser.add_argument(
         "--no-access", action="store_true",
-        help="Shortcut for --no-absolute-zp-access, --no-absolute-x-zp-access, "
-        "--no-absolute-y-zp-access, --no-mirror-access, --no-cart-space-start-access and "
-        "--no-prg-ram-access."
+        help="Shortcut for --no-absolute-zp-access, --no-absolute-indexed-zp-access, "
+        "--no-mirror-access, --no-cart-space-start-access and --no-prg-ram-access."
     )
     parser.add_argument(
         "--no-register-execute", action="store_true",
@@ -293,90 +286,164 @@ def parse_arguments():
 
     return args
 
-def disassemble(handle, args):
+# -------------------------------------------------------------------------------------------------
+
+def get_file_size(handle):
+    """Get and validate PRG file size."""
+
+    fileSize = handle.seek(0, 2)
+    if fileSize % 256 or not 256 <= fileSize <= 4 * 1024 * 1024:
+        sys.exit("The input file size must be 256 bytes to 4 MiB and a multiple of 256 bytes.")
+    return fileSize
+
+def get_bank_size(fileSize, args):
+    """Get and validate bank size."""
+
+    bankSize = math.gcd(fileSize, 32 * 1024) if args.bank_size is None else args.bank_size
+    if fileSize % bankSize:
+        sys.exit("File size must a multiple of or equal to bank size.")
+    return bankSize
+
+def get_origin(bankSize, args):
+    """Get and validate origin."""
+
+    origin = 64 * 1024 - bankSize if args.origin is None else args.origin
+    if origin % 256:
+        sys.exit("Origin must be a multiple of 256.")
+    if not 32 * 1024 <= origin <= 64 * 1024 - bankSize:
+        sys.exit("Origin must not be less than 32768 or greater than 65536 minus bank size.")
+    return origin
+
+def decode_relative_address(programCounter, offset):
+    """Get the effective address of a branch instruction.
+    programCounter: 16-bit int, offset: 8-bit int, return: int (may over-/underflow)"""
+
+    return programCounter + 2 - (offset & 0x80) + (offset & 0x7f)
+
+def decode_16_bit_address(bytes_):
+    """Decode 2 bytes as a little-endian unsigned integer."""
+
+    return bytes_[0] + bytes_[1] * 0x100
+
+def starts_with_instruction(instrBytes, offset, bankSize, args):
+    """Does the specified substring of PRG data start with a valid instruction (opcode and
+    operand)?
+    instrBytes: 1 to 3 bytes, offset: int, bankSize: int, args: from argparse, return: bool"""
+
+    instrInfo = INSTRUCTIONS.get(instrBytes[0])
+
+    if instrInfo is None:
+        return False  # undocumented opcode
+
+    if len(instrBytes) < 1 + ADDR_MODES[instrInfo["addrMode"]]["operandSize"]:
+        return False  # operand does not fit in same bank
+
+    if instrInfo["addrMode"] == "re" \
+    and not 0 <= decode_relative_address(offset, instrBytes[1]) < bankSize:
+        return False  # branch target in different bank
+
+    if args.no_brk and instrInfo["mnemonic"] == "brk":
+        return False  # BRK
+
+    if args.no_indirect_x and instrInfo["addrMode"] == "idx":
+        return False  # (indirect,x) addressing
+
+    if instrInfo["addrMode"] in ("ab", "abx", "aby", "id"):
+        addr = decode_16_bit_address(instrBytes[1:])
+
+        if (args.no_absolute_zp_access or args.no_access) \
+        and instrInfo["addrMode"] == "ab" \
+        and instrInfo["mnemonic"] not in ("jmp", "jsr") \
+        and addr <= 0x00ff:
+            return False  # uses absolute instead of zero page
+
+        if (args.no_absolute_indexed_zp_access or args.no_access) \
+        and (
+            instrInfo["addrMode"] == "abx"
+            or instrInfo["addrMode"] == "aby" and instrInfo["mnemonic"] == "ldx"
+        ) \
+        and addr <= 0x00ff:
+            return False  # uses absolute indexed instead of corresponding zero page indexed
+
+        if (args.no_mirror_access or args.no_access) \
+        and (0x0800 <= addr <= 0x1fff or 0x2008 <= addr <= 0x3fff):
+            return False  # accesses RAM mirrors or PPU register mirrors
+
+        if (args.no_cart_space_start_access or args.no_access) and 0x4020 <= addr <= 0x5fff:
+            return False  # accesses the beginning of cartridge space
+
+        if (args.no_prg_ram_access or args.no_access) and 0x6000 <= addr <= 0x7fff:
+            return False  # accesses PRG RAM
+
+        if args.no_register_execute \
+        and instrInfo["mnemonic"] in ("jmp", "jsr") \
+        and instrInfo["addrMode"] == "ab" \
+        and (0x2000 <= addr <= 0x3fff or 0x4000 <= addr <= 0x401f):
+            return False  # executes memory-mapped registers
+
+        if args.no_rom_write \
+        and instrInfo["mnemonic"] \
+        in ("asl", "dec", "inc", "lsr", "rol", "ror", "sta", "stx", "sty") \
+        and addr >= 0x8000:
+            return False  # writes PRG ROM
+
+    return True
+
+def gather_labels(handle, args):
+    """Get addresses of labels from a PRG file.
+    Note: always returns an empty dict if the game uses bankswitching.
+    handle: file handle, args: from argparse, return: dict (CPU address -> name)"""
+
+    validLabels = set()  # not inside an instruction etc.
+    referredLabels = set()  # labels referred to
+
+    fileSize = get_file_size(handle)
+    bankSize = get_bank_size(fileSize, args)
+    if bankSize < fileSize:
+        print("Warning: game uses bankswitching; PRG ROM labels disabled.", file=sys.stderr)
+        return {}
+    origin = get_origin(bankSize, args)
+
+    # quite similar to the main loop in disassemble()
+    for (bankIndex, bankAddr) in enumerate(range(0, fileSize, bankSize)):
+        handle.seek(bankAddr)
+        bankContents = handle.read(bankSize)
+
+        offset = 0  # within bank
+        dataStartOffset = None  # where current string of data bytes started
+
+        while offset < bankSize:
+            validLabels.add(origin + offset)
+            # look at next 1...3 bytes
+            if starts_with_instruction(bankContents[offset:offset+3], offset, bankSize, args):
+                instrInfo = INSTRUCTIONS[bankContents[offset]]
+                if instrInfo["addrMode"] in ("ab", "abx", "aby", "id"):
+                    targetAddr = decode_16_bit_address(bankContents[offset+1:offset+3])
+                    if targetAddr >= 0x8000:
+                        referredLabels.add(targetAddr)
+                elif instrInfo["addrMode"] == "re":
+                    referredLabels.add(decode_relative_address(
+                        origin + offset, bankContents[offset+1]
+                    ))
+                offset += 1 + ADDR_MODES[instrInfo["addrMode"]]["operandSize"]
+            else:
+                offset += 1
+
+    return dict(
+        (addr, f"label{i+1}") for (i, addr) in enumerate(sorted(referredLabels & validLabels))
+    )
+
+def disassemble(handle, labels, args):
     """Disassemble a PRG file.
-    handle: file handle, args: from argparse, return: None"""
+    handle: file handle, labels: list, args: from argparse, return: None"""
 
-    def decode_relative_address(programCounter, offset):
-        """Get the effective address of a branch instruction.
-        programCounter: 16-bit int, offset: 8-bit int, return: int (may over-/underflow)"""
-
-        return programCounter + 2 - (offset & 0x80) + (offset & 0x7f)
-
-    def starts_with_instruction(instrBytes, offset, bankSize, args):
-        """Does the specified substring of PRG data start with a valid instruction (opcode and
-        operand)?
-        instrBytes: 1 to 3 bytes, offset: int, bankSize: int, args: from argparse, return: bool"""
-
-        instrInfo = INSTRUCTIONS.get(instrBytes[0])
-
-        if instrInfo is None:
-            return False  # undocumented opcode
-
-        if len(instrBytes) < 1 + ADDR_MODES[instrInfo["addrMode"]]["operandSize"]:
-            return False  # operand does not fit in same bank
-
-        if instrInfo["addrMode"] == "re" \
-        and not 0 <= decode_relative_address(offset, instrBytes[1]) < bankSize:
-            return False  # branch target in different bank
-
-        if args.no_brk and instrInfo["mnemonic"] == "brk":
-            return False  # BRK
-
-        if args.no_indirect_x and instrInfo["addrMode"] == "idx":
-            return False  # (indirect,x) addressing
-
-        if instrInfo["addrMode"] in ("ab", "abx", "aby", "id"):
-            addr = instrBytes[1] + instrBytes[2] * 0x100
-
-            if (args.no_absolute_zp_access or args.no_access) \
-            and instrInfo["addrMode"] == "ab" \
-            and instrInfo["mnemonic"] not in ("jmp", "jsr") \
-            and addr <= 0x00ff:
-                return False  # pointlessly uses absolute instead of zero page
-
-            if (args.no_absolute_x_zp_access or args.no_access) \
-            and instrInfo["addrMode"] == "abx" \
-            and addr <= 0x00ff:
-                return False  # pointlessly uses absolute,x instead of zeroPage,x
-
-            if (args.no_absolute_y_zp_access or args.no_access) \
-            and instrInfo["addrMode"] == "aby" \
-            and instrInfo["mnemonic"] == "ldx" \
-            and addr <= 0x00ff:
-                return False  # pointlessly uses absolute,y instead of zeroPage,y
-
-            if (args.no_mirror_access or args.no_access) \
-            and (0x0800 <= addr <= 0x1fff or 0x2008 <= addr <= 0x3fff):
-                return False  # accesses RAM mirrors or PPU register mirrors
-
-            if (args.no_cart_space_start_access or args.no_access) and 0x4020 <= addr <= 0x5fff:
-                return False  # accesses the beginning of cartridge space
-
-            if (args.no_prg_ram_access or args.no_access) and 0x6000 <= addr <= 0x7fff:
-                return False  # accesses PRG RAM
-
-            if args.no_register_execute \
-            and instrInfo["mnemonic"] in ("jmp", "jsr") \
-            and instrInfo["addrMode"] == "ab" \
-            and (0x2000 <= addr <= 0x3fff or 0x4000 <= addr <= 0x401f):
-                return False  # executes memory-mapped registers
-
-            if args.no_rom_write \
-            and instrInfo["mnemonic"] \
-            in ("asl", "dec", "inc", "lsr", "rol", "ror", "sta", "stx", "sty") \
-            and addr >= 0x8000:
-                return False  # writes PRG ROM
-
-        return True
-
-    def format_instruction_line(instrBytes, addr):
+    def format_instruction_line(instrBytes, addr, labels):
         """Disassemble a valid instruction.
-        instrBytes: 1 to 3 bytes, addr: 16-bit int, return: str"""
+        instrBytes: 1 to 3 bytes, addr: 16-bit int, labels: dict, return: str"""
 
-        def format_operand_value(instrBytes, programCounter):
+        def format_operand_value(instrBytes, programCounter, labels):
             """Decode and format the value of an operand.
-            instrBytes: 1 to 3 bytes, programCounter: 16-bit int, return: str"""
+            instrBytes: 1 to 3 bytes, programCounter: 16-bit int, labels: dict, return: str"""
 
             instrInfo = INSTRUCTIONS[instrBytes[0]]
             addrMode = instrInfo["addrMode"]
@@ -390,52 +457,47 @@ def disassemble(handle, args):
                 if addrMode == "re":
                     # program counter relative (bank boundary crossing handled elsewhere)
                     value = decode_relative_address(programCounter, value)
-                    return f"${value:04x}"
+                    return labels.get(value, f"${value:04x}")
                 if addrMode == "imm" and instrInfo["mnemonic"] in ("and", "eor", "ora"):
                     # immediate bitmask (in binary)
                     return f"%{value:08b}"
                 return f"${value:02x}"
             # 2 bytes
-            value = instrBytes[1] + instrBytes[2] * 0x100
-            return HARDWARE_REGISTERS.get(value, f"${value:04x}")
+            value = decode_16_bit_address(instrBytes[1:])
+            return HARDWARE_REGISTERS.get(value, labels.get(value, f"${value:04x}"))
 
         instrInfo = INSTRUCTIONS[instrBytes[0]]
         addrModeInfo = ADDR_MODES[instrInfo["addrMode"]]
-        operand = addrModeInfo["prefix"] + format_operand_value(instrBytes, addr) \
+        operand = addrModeInfo["prefix"] + format_operand_value(instrBytes, addr, labels) \
         + addrModeInfo["suffix"]
         line = instrInfo["mnemonic"] + (" " + operand if operand else "")
         hexBytes = " ".join(f"{byte:02x}" for byte in instrBytes[:1+addrModeInfo["operandSize"]])
         return f"    {line:29s}; {addr:04x}: {hexBytes}"
 
-    def generate_data_lines(addr, data):
+    def generate_data_lines(data, addr, labels):
         """Generate lines with data bytes.
-        addr: int, data: bytes, yield: str"""
+        data: bytes, addr: int, labels: dict, yield: str"""
 
-        for i in range(0, len(data), 8):
-            line = "hex " + " ".join(f"{byte:02x}" for byte in data[i:i+8])
-            yield f"    {line:29s}; {addr+i:04x}"
+        # TODO: tidier output (8 values per line)
 
-    # get file size
-    fileSize = handle.seek(0, 2)
-    if fileSize % 256 or not 256 <= fileSize <= 4 * 1024 * 1024:
-        sys.exit("The input file size must be 256 bytes to 4 MiB and a multiple of 256 bytes.")
+        for (offset, byte) in enumerate(data):
+            # yield label if any
+            try:
+                yield f"{labels[addr+offset]}:"
+            except KeyError:
+                pass
+            yield f"    db ${byte:02x}                       ; {addr+offset:04x}"
 
-    # get bank size and number of banks
-    bankSize = math.gcd(fileSize, 32 * 1024) if args.bank_size is None else args.bank_size
-    if fileSize % bankSize:
-        sys.exit("File size is not equal to or a multiple of bank size.")
-    bankCount = fileSize // bankSize
-
-    # get origin
-    origin = 64 * 1024 - bankSize if args.origin is None else args.origin
-    if not 32 * 1024 <= origin <= 64 * 1024 - bankSize:
-        sys.exit("Origin must not be less than 32768 or greater than 65536 minus bank size.")
+    fileSize = get_file_size(handle)
+    bankSize = get_bank_size(fileSize, args)
+    origin = get_origin(bankSize, args)
 
     print(f"; Input file: {os.path.basename(handle.name)}")
     print(f"; PRG ROM size: {fileSize} (0x{fileSize:04x})")
-    print(f"; Number of banks: {bankCount}")
     print(f"; Bank size: {bankSize} (0x{bankSize:04x})")
+    print(f"; Number of banks: {fileSize//bankSize}")
     print(f"; Bank CPU address: 0x{origin:04x}...0x{origin+bankSize-1:04x}")
+    print(f"; Number of PRG ROM labels: {len(labels)}")
     print()
 
     print("; === NES memory-mapped registers ===")
@@ -444,32 +506,41 @@ def disassemble(handle, args):
         print(f"{HARDWARE_REGISTERS[addr]:10s} equ ${addr:04x}")
     print()
 
-    handle.seek(0)
-    for bank in range(bankCount):
+    # quite similar to the main loop in gather_labels()
+    for (bankIndex, bankAddr) in enumerate(range(0, fileSize, bankSize)):
         print(
-            f"; === Bank {bank} (PRG ROM 0x{bank*bankSize:04x}...0x{(bank+1)*bankSize-1:04x}) ==="
+            f"; === Bank {bankIndex} (PRG ROM 0x{bankAddr:04x}...0x{bankAddr+bankSize-1:04x}) ==="
         )
         print()
         print("    base ${:04x}".format(origin))
         print()
 
-        bankData = handle.read(bankSize)
+        handle.seek(bankAddr)
+        bankContents = handle.read(bankSize)
+
         offset = 0  # within bank
         dataStartOffset = None  # where current string of data bytes started
 
         while offset < bankSize:
             # look at next 1...3 bytes
-            if starts_with_instruction(bankData[offset:offset+3], offset, bankSize, args):
+            if starts_with_instruction(bankContents[offset:offset+3], offset, bankSize, args):
                 if dataStartOffset is not None:
                     # print previous data bytes
                     for line in generate_data_lines(
-                        origin + dataStartOffset, bankData[dataStartOffset:offset]
+                        bankContents[dataStartOffset:offset], origin + dataStartOffset, labels
                     ):
                         print(line)
                     print()
                     dataStartOffset = None
-                print(format_instruction_line(bankData[offset:offset+3], origin + offset))
-                instrInfo = INSTRUCTIONS[bankData[offset]]
+                # print label if any
+                try:
+                    print(f"{labels[origin+offset]}:")
+                except KeyError:
+                    pass
+                print(format_instruction_line(
+                    bankContents[offset:offset+3], origin + offset, labels
+                ))
+                instrInfo = INSTRUCTIONS[bankContents[offset]]
                 if instrInfo["mnemonic"] in ("jmp", "rti", "rts"):
                     print()
                 offset += 1 + ADDR_MODES[instrInfo["addrMode"]]["operandSize"]
@@ -480,11 +551,13 @@ def disassemble(handle, args):
         if dataStartOffset is not None:
             # print last data bytes
             for line in generate_data_lines(
-                origin + dataStartOffset, bankData[dataStartOffset:offset]
+                bankContents[dataStartOffset:offset], origin + dataStartOffset, labels
             ):
                 print(line)
 
         print()
+
+# -------------------------------------------------------------------------------------------------
 
 def main():
     """The main function."""
@@ -492,7 +565,8 @@ def main():
     args = parse_arguments()
 
     with open(args.input_file, "rb") as handle:
-        disassemble(handle, args)
+        labels = gather_labels(handle, args)
+        disassemble(handle, labels, args)
 
 if __name__ == "__main__":
     main()
