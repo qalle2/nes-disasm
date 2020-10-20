@@ -1,11 +1,13 @@
 # nes-disasm
 An NES (6502) disassembler. The output is compatible with [asm6f](https://github.com/freem/asm6f). Work in progress.
 
-Note: the Linux script `test` is intended for my personal use. Do not run it without reading it.
+Notes:
+* The Linux script `test` is intended for my personal use. Do not run it without reading it.
+* The program does not support iNES ROM files (`.nes`) yet; to convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).
 
 ## Features
 * Uses labels for memory-mapped hardware registers.
-* Searches for PRG ROM labels (does not work with bankswitched games).
+* Searches for RAM and PRG ROM labels (does not work with bankswitched games).
 
 ## Command line arguments
 ```
@@ -66,9 +68,7 @@ optional arguments:
 ```
 
 ## To do
-* Output data bytes in a tidier format (several values per line).
-* Search for PRG ROM labels with bankswitched games.
-* Search for RAM labels.
+* Search for RAM (and possibly PRG ROM) labels with bankswitched games.
 * Support other syntaxes.
 * Support reading iNES ROM files (`.nes`).
 * Support reading FCEUX Code/Data Logger files (`.cdl`).

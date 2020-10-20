@@ -389,12 +389,12 @@ def starts_with_instruction(instrBytes, offset, bankSize, args):
 
     return True
 
-def gather_labels(handle, args):
+def get_labels(handle, args):
     """Get addresses of labels from a PRG file.
     Note: always returns an empty dict if the game uses bankswitching.
     handle: file handle, args: from argparse, return: dict (CPU address -> name)"""
 
-    validLabels = set()  # not inside an instruction etc.
+    validLabels = set(range(0x0800))  # not inside an instruction etc.
     referredLabels = set()  # labels referred to
 
     fileSize = get_file_size(handle)
@@ -419,7 +419,7 @@ def gather_labels(handle, args):
                 instrInfo = INSTRUCTIONS[bankContents[offset]]
                 if instrInfo["addrMode"] in ("ab", "abx", "aby", "id"):
                     targetAddr = decode_16_bit_address(bankContents[offset+1:offset+3])
-                    if targetAddr >= 0x8000:
+                    if targetAddr <= 0x07ff or targetAddr >= 0x8000:  # RAM or PRG ROM
                         referredLabels.add(targetAddr)
                 elif instrInfo["addrMode"] == "re":
                     referredLabels.add(decode_relative_address(
@@ -429,13 +429,20 @@ def gather_labels(handle, args):
             else:
                 offset += 1
 
-    return dict(
-        (addr, f"label{i+1}") for (i, addr) in enumerate(sorted(referredLabels & validLabels))
+    labels = referredLabels & validLabels  # intersection
+
+    # convert into a dict
+    labelDict = dict(
+        (addr, f"ram{i+1}") for (i, addr) in enumerate(sorted(l for l in labels if l <= 0x07ff))
     )
+    labelDict.update(
+        (addr, f"rom{i+1}") for (i, addr) in enumerate(sorted(l for l in labels if l >= 0x8000))
+    )
+    return labelDict
 
 def disassemble(handle, labels, args):
     """Disassemble a PRG file.
-    handle: file handle, labels: list, args: from argparse, return: None"""
+    handle: file handle, labels: dict, args: from argparse, return: None"""
 
     def format_instruction_line(instrBytes, addr, labels):
         """Disassemble a valid instruction.
@@ -470,23 +477,33 @@ def disassemble(handle, labels, args):
         addrModeInfo = ADDR_MODES[instrInfo["addrMode"]]
         operand = addrModeInfo["prefix"] + format_operand_value(instrBytes, addr, labels) \
         + addrModeInfo["suffix"]
-        line = instrInfo["mnemonic"] + (" " + operand if operand else "")
+        line = "    " + instrInfo["mnemonic"] + (" " + operand if operand else "")
         hexBytes = " ".join(f"{byte:02x}" for byte in instrBytes[:1+addrModeInfo["operandSize"]])
-        return f"    {line:29s}; {addr:04x}: {hexBytes}"
+        return f"{line:33s}; {addr:04x}: {hexBytes}"
 
     def generate_data_lines(data, addr, labels):
         """Generate lines with data bytes.
         data: bytes, addr: int, labels: dict, yield: str"""
 
-        # TODO: tidier output (8 values per line)
+        def generate_data_block(data, addr):
+            """Generate lines with data bytes without labels.
+            If addr is specified, output it on the first line only.
+            data: bytes, addr: int, yield: str"""
+
+            for offset in range(0, len(data), 8):
+                line = "    hex " + " ".join(f"{byte:02x}" for byte in data[offset:offset+8])
+                yield f"{line:33s}; {addr+offset:04x}"
+
+        startOffset = 0  # offset of the first byte not yet output
 
         for (offset, byte) in enumerate(data):
-            # yield label if any
-            try:
-                yield f"{labels[addr+offset]}:"
-            except KeyError:
-                pass
-            yield f"    db ${byte:02x}                       ; {addr+offset:04x}"
+            label = labels.get(addr + offset)
+            if label is not None:
+                yield from generate_data_block(data[startOffset:offset], addr + startOffset)
+                startOffset = offset
+                print(f"{label+':':33s}; {addr+offset:04x}")
+
+        yield from generate_data_block(data[startOffset:], addr + startOffset)
 
     fileSize = get_file_size(handle)
     bankSize = get_bank_size(fileSize, args)
@@ -497,7 +514,6 @@ def disassemble(handle, labels, args):
     print(f"; Bank size: {bankSize} (0x{bankSize:04x})")
     print(f"; Number of banks: {fileSize//bankSize}")
     print(f"; Bank CPU address: 0x{origin:04x}...0x{origin+bankSize-1:04x}")
-    print(f"; Number of PRG ROM labels: {len(labels)}")
     print()
 
     print("; === NES memory-mapped registers ===")
@@ -506,7 +522,17 @@ def disassemble(handle, labels, args):
         print(f"{HARDWARE_REGISTERS[addr]:10s} equ ${addr:04x}")
     print()
 
-    # quite similar to the main loop in gather_labels()
+    print("; === RAM labels ===")
+    print()
+    # zero page
+    for addr in sorted(l for l in labels if l <= 0x07ff):
+        if addr <= 0xff:
+            print(f"{labels[addr]:7s} equ ${addr:02x}")
+        else:
+            print(f"{labels[addr]:7s} equ ${addr:04x}")
+    print()
+
+    # quite similar to the main loop in get_labels()
     for (bankIndex, bankAddr) in enumerate(range(0, fileSize, bankSize)):
         print(
             f"; === Bank {bankIndex} (PRG ROM 0x{bankAddr:04x}...0x{bankAddr+bankSize-1:04x}) ==="
@@ -565,7 +591,7 @@ def main():
     args = parse_arguments()
 
     with open(args.input_file, "rb") as handle:
-        labels = gather_labels(handle, args)
+        labels = get_labels(handle, args)
         disassemble(handle, labels, args)
 
 if __name__ == "__main__":

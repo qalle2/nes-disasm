@@ -3,25 +3,37 @@ rm -f test-out/*.asm test-out/*.bin
 
 echo "=== all-instructions.prg (disassemble, reassemble, verify) ==="
 python3 nesdisasm.py test-in/all-instructions.prg > test-out/all-instructions.asm
-asm6f test-out/all-instructions.asm test-out/all-instructions.bin
-diff test-in/all-instructions.prg test-out/all-instructions.bin
+asm6f test-out/all-instructions.asm test-out/all-instructions-reassembled.bin
+diff test-in/all-instructions.prg test-out/all-instructions-reassembled.bin
+echo
+
+echo "=== Game Genie (disassemble, reassemble, verify) ==="
+python3 nesdisasm.py --no-brk --no-indirect-x --no-access --no-register-execute --no-rom-write test-in/gamegenie.prg > test-out/gamegenie.asm
+asm6f test-out/gamegenie.asm test-out/gamegenie-reassembled.bin
+diff test-in/gamegenie.prg test-out/gamegenie-reassembled.bin
 echo
 
 echo "=== Excitebike (disassemble, reassemble, verify) ==="
 python3 nesdisasm.py --no-brk --no-indirect-x --no-access --no-register-execute --no-rom-write test-in/excitebike.prg > test-out/excitebike.asm
-asm6f test-out/excitebike.asm test-out/excitebike.bin
-diff test-in/excitebike.prg test-out/excitebike.bin
+asm6f test-out/excitebike.asm test-out/excitebike-reassembled.bin
+diff test-in/excitebike.prg test-out/excitebike-reassembled.bin
+echo
+
+echo "=== Lunar Pool (disassemble, reassemble, verify) ==="
+python3 nesdisasm.py --no-brk --no-indirect-x --no-access --no-register-execute --no-rom-write test-in/lunarpool.prg > test-out/lunarpool.asm
+asm6f test-out/lunarpool.asm test-out/lunarpool-reassembled.bin
+diff test-in/lunarpool.prg test-out/lunarpool-reassembled.bin
 echo
 
 echo "=== SMB (disassemble, reassemble, verify) ==="
-python3 nesdisasm.py --no-brk --no-indirect-x --no-access --no-register-execute --no-rom-write test-in/smb.prg > test-out/smb.asm
-asm6f test-out/smb.asm test-out/smb.bin
-diff test-in/smb.prg test-out/smb.bin
+python3 nesdisasm.py --no-brk --no-indirect-x --no-access --no-register-execute --no-rom-write test-in/smb1.prg > test-out/smb1.asm
+asm6f test-out/smb1.asm test-out/smb1-reassembled.bin
+diff test-in/smb1.prg test-out/smb1-reassembled.bin
 echo
 
 echo "=== Blaster Master (disassemble, reassemble, verify) ==="
 python3 nesdisasm.py --bank-size 16384 --no-brk --no-indirect-x --no-access --no-register-execute test-in/blastermaster.prg > test-out/blastermaster.asm
-asm6f test-out/blastermaster.asm test-out/blastermaster.bin
-diff test-in/blastermaster.prg test-out/blastermaster.bin
+asm6f test-out/blastermaster.asm test-out/blastermaster-reassembled.bin
+diff test-in/blastermaster.prg test-out/blastermaster-reassembled.bin
 echo
 
