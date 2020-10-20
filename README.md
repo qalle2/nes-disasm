@@ -67,6 +67,41 @@ optional arguments:
                         (0x8000...0xffff).
 ```
 
+## Sample output
+```
+; Input file: example.prg
+; PRG ROM size: 32768 (0x8000)
+; Bank size: 32768 (0x8000)
+; Number of banks: 1
+; Bank CPU address: 0x8000...0xffff
+
+; === NES memory-mapped registers ===
+
+ppu_ctrl   equ $2000
+ppu_mask   equ $2001
+
+(snip)
+
+; === RAM labels ===
+
+ram1    equ $00
+ram2    equ $01
+
+(snip)
+
+; === Bank 0 (PRG ROM 0x0000...0x7fff) ===
+
+    base $8000
+
+rom1:
+    sei                          ; 8000: 78
+    jsr rom2                     ; 8001: 20 04 80
+rom2:                            ; 8004
+    hex 00 01 02 03 04 05 06     ; 8004
+
+(snip)
+```
+
 ## To do
 * Search for RAM (and possibly PRG ROM) labels with bankswitched games.
 * Support other syntaxes.
