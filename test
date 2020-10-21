@@ -37,3 +37,9 @@ asm6f test-out/blastermaster.asm test-out/blastermaster-reassembled.bin
 diff test-in/blastermaster.prg test-out/blastermaster-reassembled.bin
 echo
 
+echo "=== SMB 3 (disassemble, reassemble, verify) ==="
+python3 nesdisasm.py --bank-size 8192 --no-brk --no-indirect-x --no-access --no-register-execute test-in/smb3.prg > test-out/smb3.asm
+asm6f test-out/smb3.asm test-out/smb3-reassembled.bin
+diff test-in/smb3.prg test-out/smb3-reassembled.bin
+echo
+

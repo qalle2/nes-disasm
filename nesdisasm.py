@@ -320,11 +320,6 @@ def decode_relative_address(programCounter, offset):
 
     return programCounter + 2 - (offset & 0x80) + (offset & 0x7f)
 
-def decode_16_bit_address(bytes_):
-    """Decode 2 bytes as a little-endian unsigned integer."""
-
-    return bytes_[0] + bytes_[1] * 0x100
-
 def starts_with_instruction(instrBytes, offset, bankSize, args):
     """Does the specified substring of PRG data start with a valid instruction (opcode and
     operand)?
@@ -349,7 +344,7 @@ def starts_with_instruction(instrBytes, offset, bankSize, args):
         return False  # (indirect,x) addressing
 
     if instrInfo["addrMode"] in ("ab", "abx", "aby", "id"):
-        addr = decode_16_bit_address(instrBytes[1:])
+        addr = instrBytes[1] + instrBytes[2] * 0x100
 
         if (args.no_absolute_zp_access or args.no_access) \
         and instrInfo["addrMode"] == "ab" \
@@ -394,14 +389,17 @@ def get_labels(handle, args):
     Note: always returns an empty dict if the game uses bankswitching.
     handle: file handle, args: from argparse, return: dict (CPU address -> name)"""
 
-    validLabels = set(range(0x0800))  # not inside an instruction etc.
-    referredLabels = set()  # labels referred to
+    # all valid addresses for labels (not inside an instruction etc.)
+    validLabels = set(range(0x0800))
+
+    # note: the same address may occur in both of these
+    codeLabels = set()  # addresses referred to as code
+    dataLabels = set()  # addresses referred to as data
 
     fileSize = get_file_size(handle)
     bankSize = get_bank_size(fileSize, args)
     if bankSize < fileSize:
         print("Warning: game uses bankswitching; PRG ROM labels disabled.", file=sys.stderr)
-        return {}
     origin = get_origin(bankSize, args)
 
     # quite similar to the main loop in disassemble()
@@ -417,27 +415,55 @@ def get_labels(handle, args):
             # look at next 1...3 bytes
             if starts_with_instruction(bankContents[offset:offset+3], offset, bankSize, args):
                 instrInfo = INSTRUCTIONS[bankContents[offset]]
-                if instrInfo["addrMode"] in ("ab", "abx", "aby", "id"):
-                    targetAddr = decode_16_bit_address(bankContents[offset+1:offset+3])
-                    if targetAddr <= 0x07ff or targetAddr >= 0x8000:  # RAM or PRG ROM
-                        referredLabels.add(targetAddr)
-                elif instrInfo["addrMode"] == "re":
-                    referredLabels.add(decode_relative_address(
+                if instrInfo["addrMode"] in ("zp", "zpx", "zpy", "idx", "idy"):
+                    # 8-bit address
+                    dataLabels.add(bankContents[offset+1])  # zero page
+                elif instrInfo["addrMode"] in ("ab", "abx", "aby", "id"):
+                    # 16-bit address
+                    targetAddr = bankContents[offset+1] + bankContents[offset+2] * 0x100
+                    if targetAddr <= 0x07ff or targetAddr >= 0x8000 and bankSize == fileSize:
+                        # RAM or PRG ROM (the latter for non-bankswitched games only)
+                        if instrInfo["mnemonic"] in ("jmp", "jsr"):
+                            codeLabels.add(targetAddr)
+                        else:
+                            dataLabels.add(targetAddr)
+                elif instrInfo["addrMode"] == "re" and bankSize == fileSize:
+                    # relative address (non-bankswitched games only)
+                    codeLabels.add(decode_relative_address(
                         origin + offset, bankContents[offset+1]
                     ))
                 offset += 1 + ADDR_MODES[instrInfo["addrMode"]]["operandSize"]
             else:
                 offset += 1
 
-    labels = referredLabels & validLabels  # intersection
+    # delete invalid labels
+    codeLabels.intersection_update(validLabels)
+    dataLabels.intersection_update(validLabels)
+    del validLabels
 
-    # convert into a dict
-    labelDict = dict(
-        (addr, f"ram{i+1}") for (i, addr) in enumerate(sorted(l for l in labels if l <= 0x07ff))
-    )
-    labelDict.update(
-        (addr, f"rom{i+1}") for (i, addr) in enumerate(sorted(l for l in labels if l >= 0x8000))
-    )
+    # convert labels into a dict (there are 3 * 3 = 9 types of labels)
+    labelDict = {}
+    for (addrRange, rangeName) in zip(
+        (
+            range(0x100),           # zero page
+            range(0x0100, 0x0800),  # other RAM addresses
+            range(0x8000, 0x10000)  # PRG ROM
+        ),
+        ("zp", "ram", "prg")
+    ):
+        for (addrSet, setName) in zip(
+            (
+                codeLabels - dataLabels,  # code only
+                dataLabels - codeLabels,  # data only
+                codeLabels & dataLabels   # code & data
+            ),
+            ("code", "data", "codedata")
+        ):
+            addresses = sorted(addr for addr in addrSet if addr in addrRange)
+            labelDict.update(
+                (addr, f"{rangeName}{setName}{i+1}") for (i, addr) in enumerate(addresses)
+            )
+
     return labelDict
 
 def disassemble(handle, labels, args):
@@ -464,13 +490,16 @@ def disassemble(handle, labels, args):
                 if addrMode == "re":
                     # program counter relative (bank boundary crossing handled elsewhere)
                     value = decode_relative_address(programCounter, value)
-                    return labels.get(value, f"${value:04x}")
-                if addrMode == "imm" and instrInfo["mnemonic"] in ("and", "eor", "ora"):
-                    # immediate bitmask (in binary)
-                    return f"%{value:08b}"
-                return f"${value:02x}"
+                    return labels.get(value, f"${value:04x}")  # label or hexadecimal
+                if addrMode == "imm":
+                    # immediate
+                    if instrInfo["mnemonic"] in ("and", "eor", "ora"):
+                        return f"%{value:08b}"  # bitmask (in binary)
+                    return f"${value:02x}"  # other immediate value (in hexadecimal)
+                # other 1-byte operand
+                return labels.get(value, f"${value:02x}")  # label or hexadecimal
             # 2 bytes
-            value = decode_16_bit_address(instrBytes[1:])
+            value = instrBytes[1] + instrBytes[2] * 0x100
             return HARDWARE_REGISTERS.get(value, labels.get(value, f"${value:04x}"))
 
         instrInfo = INSTRUCTIONS[instrBytes[0]]
@@ -524,12 +553,13 @@ def disassemble(handle, labels, args):
 
     print("; === RAM labels ===")
     print()
-    # zero page
-    for addr in sorted(l for l in labels if l <= 0x07ff):
-        if addr <= 0xff:
-            print(f"{labels[addr]:7s} equ ${addr:02x}")
-        else:
-            print(f"{labels[addr]:7s} equ ${addr:04x}")
+    # zero page (longest name possible: "zpcodedata256")
+    for addr in sorted(l for l in labels if l <= 0xff):
+        print(f"{labels[addr]:13s} equ ${addr:02x}")
+    print()
+    # other RAM labels (longest name possible: "ramcodedata1792")
+    for addr in sorted(l for l in labels if 0x0100 <= l <= 0x07ff):
+        print(f"{labels[addr]:15s} equ ${addr:04x}")
     print()
 
     # quite similar to the main loop in get_labels()

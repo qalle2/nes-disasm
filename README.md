@@ -3,11 +3,21 @@ An NES (6502) disassembler. The output is compatible with [asm6f](https://github
 
 Notes:
 * The Linux script `test` is intended for my personal use. Do not run it without reading it.
-* The program does not support iNES ROM files (`.nes`) yet; to convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).
+* The program does not support iNES ROM files (`.nes`); to convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).
 
 ## Features
 * Uses labels for memory-mapped hardware registers.
-* Searches for RAM and PRG ROM labels (does not work with bankswitched games).
+* Uses labels for RAM and PRG ROM addresses:
+  * `zpcode1` etc.: on zero page (`$00`&hellip;`$ff`), accessed as code (via `jmp` or `jsr`)
+  * `zpdata1` etc.: on zero page (`$00`&hellip;`$ff`), accessed as data
+  * `zpcodedata1` etc.: on zero page (`$00`&hellip;`$ff`), accessed as both code and data
+  * `ramcode1` etc.: in other RAM (`$0100`&hellip;`$07ff`), accessed as code (via `jmp` or `jsr`)
+  * `ramdata1` etc.: in other RAM (`$0100`&hellip;`$07ff`), accessed as data
+  * `ramcodedata1` etc.: in other RAM (`$0100`&hellip;`$07ff`), accessed as both code and data
+  * `prgcode1` etc.: in PRG ROM (`$8000`&hellip;`$ffff`), accessed as code (via `jmp`, `jsr` or a branch instruction)
+  * `prgdata1` etc.: in PRG ROM (`$8000`&hellip;`$ffff`), accessed as data
+  * `prgcodedata1` etc.: in PRG ROM (`$8000`&hellip;`$ffff`), accessed as both code and data
+* Note: PRG ROM labels are not supported with games that use PRG ROM bankswitching.
 
 ## Command line arguments
 ```
@@ -67,43 +77,8 @@ optional arguments:
                         (0x8000...0xffff).
 ```
 
-## Sample output
-```
-; Input file: example.prg
-; PRG ROM size: 32768 (0x8000)
-; Bank size: 32768 (0x8000)
-; Number of banks: 1
-; Bank CPU address: 0x8000...0xffff
-
-; === NES memory-mapped registers ===
-
-ppu_ctrl   equ $2000
-ppu_mask   equ $2001
-
-(snip)
-
-; === RAM labels ===
-
-ram1    equ $00
-ram2    equ $01
-
-(snip)
-
-; === Bank 0 (PRG ROM 0x0000...0x7fff) ===
-
-    base $8000
-
-rom1:
-    sei                          ; 8000: 78
-    jsr rom2                     ; 8001: 20 04 80
-rom2:                            ; 8004
-    hex 00 01 02 03 04 05 06     ; 8004
-
-(snip)
-```
-
 ## To do
-* Search for RAM (and possibly PRG ROM) labels with bankswitched games.
+* Search for PRG ROM labels with bankswitched games too.
 * Support other syntaxes.
 * Support reading iNES ROM files (`.nes`).
 * Support reading FCEUX Code/Data Logger files (`.cdl`).
