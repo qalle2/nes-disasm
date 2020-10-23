@@ -6,28 +6,22 @@ Notes:
 * The program does not support iNES ROM files (`.nes`); to convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).
 
 ## Features
-* Uses labels for memory-mapped hardware registers.
-* Uses labels for RAM and PRG ROM addresses:
-  * `zpcode1` etc.: on zero page (`$00`&hellip;`$ff`), accessed as code (via `jmp` or `jsr`)
-  * `zpdata1` etc.: on zero page (`$00`&hellip;`$ff`), accessed as data
-  * `zpcodedata1` etc.: on zero page (`$00`&hellip;`$ff`), accessed as both code and data
-  * `ramcode1` etc.: in other RAM (`$0100`&hellip;`$07ff`), accessed as code (via `jmp` or `jsr`)
-  * `ramdata1` etc.: in other RAM (`$0100`&hellip;`$07ff`), accessed as data
-  * `ramcodedata1` etc.: in other RAM (`$0100`&hellip;`$07ff`), accessed as both code and data
-  * `prgcode1` etc.: in PRG ROM (`$8000`&hellip;`$ffff`), accessed as code (via `jmp`, `jsr` or a branch instruction)
-  * `prgdata1` etc.: in PRG ROM (`$8000`&hellip;`$ffff`), accessed as data
-  * `prgcodedata1` etc.: in PRG ROM (`$8000`&hellip;`$ffff`), accessed as both code and data
-* Note: PRG ROM labels are not supported with games that use PRG ROM bankswitching.
+* Automatically assigns labels to addresses:
+  * `ram1`, `ram2`, &hellip;: RAM (including mirrors; `$0000`&hellip;`$1fff`)
+  * `ppu_ctrl`, `ppu_mask`: NES memory-mapped registers
+  * `misc1`, `misc2`, &hellip;: between RAM and PRG ROM (`$2000`&hellip;`$7fff`) but excluding NES memory-mapped registers
+  * `code1`, `code2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as code (via `jmp`, `jsr` or a branch instruction) (not supported if game uses PRG ROM bankswitching)
+  * `data1`, `data2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as data (not supported if game uses PRG ROM bankswitching)
+  * `codedata1`, `codedata2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as both code and data (not supported if game uses PRG ROM bankswitching)
 
 ## Command line arguments
 ```
 usage: nesdisasm.py [-h]
                     [--bank-size {256,512,1024,2048,4096,8192,16384,32768}]
-                    [--origin ORIGIN] [--no-brk] [--no-indirect-x]
-                    [--no-absolute-zp-access]
-                    [--no-absolute-indexed-zp-access] [--no-mirror-access]
-                    [--no-cart-space-start-access] [--no-prg-ram-access]
-                    [--no-access] [--no-register-execute] [--no-rom-write]
+                    [--origin ORIGIN] [--no-absolute-zp]
+                    [--no-absolute-indexed-zp] [--no-opcodes NO_OPCODES]
+                    [--no-access NO_ACCESS] [--no-write NO_WRITE]
+                    [--no-execute NO_EXECUTE]
                     input_file
 
 An NES (6502) disassembler.
@@ -46,40 +40,40 @@ optional arguments:
   --origin ORIGIN       The NES CPU address each PRG ROM bank starts from.
                         Minimum: 32768. Default & maximum: 65536 minus --bank-
                         size. Must be a multiple of 256.
-  --no-brk              Assume the game never uses the BRK instruction (opcode
-                        0x00).
-  --no-indirect-x       Assume the game never uses the (indirect,x) addressing
-                        mode.
-  --no-absolute-zp-access
-                        Assume the game never accesses zero page using
+  --no-absolute-zp      Assume the game never accesses zero page using
                         absolute addressing if the instruction also supports
                         zero page addressing.
-  --no-absolute-indexed-zp-access
+  --no-absolute-indexed-zp
                         Assume the game never accesses zero page using
                         absolute indexed addressing if the instruction also
                         supports the corresponding zero page indexed
                         addressing mode.
-  --no-mirror-access    Assume the game never accesses mirrors of RAM
-                        (0x0800...0x1fff) or mirrors of PPU registers
-                        (0x2008...0x3fff).
-  --no-cart-space-start-access
-                        Assume the game never accesses the beginning of
-                        cartridge space (0x4020...0x5fff).
-  --no-prg-ram-access   Assume the game never accesses PRG RAM
-                        (0x6000...0x7fff).
-  --no-access           Shortcut for --no-absolute-zp-access, --no-absolute-
-                        indexed-zp-access, --no-mirror-access, --no-cart-
-                        space-start-access and --no-prg-ram-access.
-  --no-register-execute
-                        Assume the game never executes memory-mapped registers
-                        (0x2000...0x3fff and 0x4000...0x401f).
-  --no-rom-write        Assume the game never writes to PRG ROM
-                        (0x8000...0xffff).
+  --no-opcodes NO_OPCODES
+                        Assume the game never uses these opcodes. Zero or more
+                        opcodes separated by commas. Each opcode is a
+                        hexadecimal integer (00 to ff). Examples: 00 = BRK, 01
+                        = ORA (indirect,x).
+  --no-access NO_ACCESS
+                        Assume the game never accesses (reads/writes/executes)
+                        these addresses. Zero or more ranges separated by
+                        commas. Each range consists of two hexadecimal
+                        addresses (0000 to ffff) separated by a hyphen.
+                        Examples: 0800-1fff = mirrors of RAM, 2008-3fff =
+                        mirrors of PPU registers, 4020-5fff = beginning of
+                        cartridge space, 6000-7fff = PRG RAM.
+  --no-write NO_WRITE   Assume the game never writes these addresses (via
+                        DEC/INC/ASL/LSR/ROL/ROR/STA/STX/STY). Same syntax as
+                        in --no-access. Example: 8000-ffff = PRG ROM.
+  --no-execute NO_EXECUTE
+                        Assume the game never executes these addresses (via
+                        JMP/JSR/branch). Same syntax as in --no-access.
+                        Examples: 0000-1fff = RAM, 2000-401f = memory-mapped
+                        registers.
 ```
 
-## To do
+## To do (in order of descending priority)
 * Search for PRG ROM labels with bankswitched games too.
-* Support other syntaxes.
-* Support reading iNES ROM files (`.nes`).
 * Support reading FCEUX Code/Data Logger files (`.cdl`).
+* Support reading iNES ROM files (`.nes`).
+* Support other assembler syntaxes.
 
