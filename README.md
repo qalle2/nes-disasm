@@ -7,12 +7,12 @@ Notes:
 
 ## Features
 * Automatically assigns labels to addresses:
-  * `ram1`, `ram2`, &hellip;: RAM (including mirrors; `$0000`&hellip;`$1fff`)
+  * `ra1`, `ra2`, &hellip;: RAM (including mirrors; `$0000`&hellip;`$1fff`)
   * `ppu_ctrl`, `ppu_mask`: NES memory-mapped registers
-  * `misc1`, `misc2`, &hellip;: between RAM and PRG ROM (`$2000`&hellip;`$7fff`) but excluding NES memory-mapped registers
-  * `code1`, `code2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as code (via `jmp`, `jsr` or a branch instruction) (not supported if game uses PRG ROM bankswitching)
-  * `data1`, `data2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as data (not supported if game uses PRG ROM bankswitching)
-  * `codedata1`, `codedata2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as both code and data (not supported if game uses PRG ROM bankswitching)
+  * `mi1`, `mi2`, &hellip;: between RAM and PRG ROM (`$2000`&hellip;`$7fff`) but excluding NES memory-mapped registers
+  * `co1`, `co2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as code (via `jmp`, `jsr` or a branch instruction) (not supported if game uses PRG ROM bankswitching)
+  * `da1`, `da2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as data (not supported if game uses PRG ROM bankswitching)
+  * `cd1`, `cd2`, &hellip;: PRG ROM (`$8000`&hellip;`$ffff`) accessed as both code and data (not supported if game uses PRG ROM bankswitching)
 
 ## Command line arguments
 ```
@@ -72,6 +72,7 @@ optional arguments:
 ```
 
 ## To do (in order of descending priority)
+* Use anonymous labels (`-`, `+`).
 * Search for PRG ROM labels with bankswitched games too.
 * Support reading FCEUX Code/Data Logger files (`.cdl`).
 * Support reading iNES ROM files (`.nes`).

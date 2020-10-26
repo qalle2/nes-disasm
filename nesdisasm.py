@@ -5,176 +5,195 @@ import math
 import os
 import sys
 
-# addressing modes
-ADDR_MODES = {
-    "imp": {"operandSize": 0, "prefix": "",  "suffix": ""},     # implied
-    "ac":  {"operandSize": 0, "prefix": "a", "suffix": ""},     # accumulator
-    "imm": {"operandSize": 1, "prefix": "#", "suffix": ""},     # immediate
-    "zp":  {"operandSize": 1, "prefix": "",  "suffix": ""},     # zero page
-    "zpx": {"operandSize": 1, "prefix": "",  "suffix": ",x"},   # zero page,x
-    "zpy": {"operandSize": 1, "prefix": "",  "suffix": ",y"},   # zero page,y
-    "idx": {"operandSize": 1, "prefix": "(", "suffix": ",x)"},  # (indirect,x)
-    "idy": {"operandSize": 1, "prefix": "(", "suffix": "),y"},  # (indirect),y
-    "re":  {"operandSize": 1, "prefix": "",  "suffix": ""},     # relative
-    "ab":  {"operandSize": 2, "prefix": "",  "suffix": ""},     # absolute
-    "abx": {"operandSize": 2, "prefix": "",  "suffix": ",x"},   # absolute,x
-    "aby": {"operandSize": 2, "prefix": "",  "suffix": ",y"},   # absolute,y
-    "id":  {"operandSize": 2, "prefix": "(", "suffix": ")"},    # indirect
+INDENT_WIDTH = 8
+
+# enumerate addressing modes
+(
+    AM_IMP,  # implied
+    AM_AC,   # accumulator
+    AM_IMM,  # immediate
+    AM_Z,    # zero page
+    AM_ZX,   # zero page,x
+    AM_ZY,   # zero page,y
+    AM_IX,   # (indirect,x)
+    AM_IY,   # (indirect),y
+    AM_R,    # relative
+    AM_AB,   # absolute
+    AM_ABX,  # absolute,x
+    AM_ABY,  # absolute,y
+    AM_I,    # (indirect)
+) = range(13)
+
+# addressing mode: (operand size, operand format)
+ADDRESSING_MODES = {
+    AM_IMP: (0, "{}"),
+    AM_AC:  (0, "a{}"),
+    AM_IMM: (1, "#{}"),
+    AM_Z:   (1, "{}"),
+    AM_ZX:  (1, "{},x"),
+    AM_ZY:  (1, "{},y"),
+    AM_IX:  (1, "({},x)"),
+    AM_IY:  (1, "({}),y"),
+    AM_R:   (1, "{}"),
+    AM_AB:  (2, "{}"),
+    AM_ABX: (2, "{},x"),
+    AM_ABY: (2, "{},y"),
+    AM_I:   (2, "({})"),
 }
 
-# addressing modes: as above
-INSTRUCTIONS = {
-    0x00: {"mnemonic": "brk", "addrMode": "imp"},
-    0x01: {"mnemonic": "ora", "addrMode": "idx"},
-    0x05: {"mnemonic": "ora", "addrMode": "zp"},
-    0x06: {"mnemonic": "asl", "addrMode": "zp"},
-    0x08: {"mnemonic": "php", "addrMode": "imp"},
-    0x09: {"mnemonic": "ora", "addrMode": "imm"},
-    0x0a: {"mnemonic": "asl", "addrMode": "ac"},
-    0x0d: {"mnemonic": "ora", "addrMode": "ab"},
-    0x0e: {"mnemonic": "asl", "addrMode": "ab"},
-    0x10: {"mnemonic": "bpl", "addrMode": "re"},
-    0x11: {"mnemonic": "ora", "addrMode": "idy"},
-    0x15: {"mnemonic": "ora", "addrMode": "zpx"},
-    0x16: {"mnemonic": "asl", "addrMode": "zpx"},
-    0x18: {"mnemonic": "clc", "addrMode": "imp"},
-    0x19: {"mnemonic": "ora", "addrMode": "aby"},
-    0x1d: {"mnemonic": "ora", "addrMode": "abx"},
-    0x1e: {"mnemonic": "asl", "addrMode": "abx"},
-    0x20: {"mnemonic": "jsr", "addrMode": "ab"},
-    0x21: {"mnemonic": "and", "addrMode": "idx"},
-    0x24: {"mnemonic": "bit", "addrMode": "zp"},
-    0x25: {"mnemonic": "and", "addrMode": "zp"},
-    0x26: {"mnemonic": "rol", "addrMode": "zp"},
-    0x28: {"mnemonic": "plp", "addrMode": "imp"},
-    0x29: {"mnemonic": "and", "addrMode": "imm"},
-    0x2a: {"mnemonic": "rol", "addrMode": "ac"},
-    0x2c: {"mnemonic": "bit", "addrMode": "ab"},
-    0x2d: {"mnemonic": "and", "addrMode": "ab"},
-    0x2e: {"mnemonic": "rol", "addrMode": "ab"},
-    0x30: {"mnemonic": "bmi", "addrMode": "re"},
-    0x31: {"mnemonic": "and", "addrMode": "idy"},
-    0x35: {"mnemonic": "and", "addrMode": "zpx"},
-    0x36: {"mnemonic": "rol", "addrMode": "zpx"},
-    0x38: {"mnemonic": "sec", "addrMode": "imp"},
-    0x39: {"mnemonic": "and", "addrMode": "aby"},
-    0x3d: {"mnemonic": "and", "addrMode": "abx"},
-    0x3e: {"mnemonic": "rol", "addrMode": "abx"},
-    0x40: {"mnemonic": "rti", "addrMode": "imp"},
-    0x41: {"mnemonic": "eor", "addrMode": "idx"},
-    0x45: {"mnemonic": "eor", "addrMode": "zp"},
-    0x46: {"mnemonic": "lsr", "addrMode": "zp"},
-    0x48: {"mnemonic": "pha", "addrMode": "imp"},
-    0x49: {"mnemonic": "eor", "addrMode": "imm"},
-    0x4a: {"mnemonic": "lsr", "addrMode": "ac"},
-    0x4c: {"mnemonic": "jmp", "addrMode": "ab"},
-    0x4d: {"mnemonic": "eor", "addrMode": "ab"},
-    0x4e: {"mnemonic": "lsr", "addrMode": "ab"},
-    0x50: {"mnemonic": "bvc", "addrMode": "re"},
-    0x51: {"mnemonic": "eor", "addrMode": "idy"},
-    0x55: {"mnemonic": "eor", "addrMode": "zpx"},
-    0x56: {"mnemonic": "lsr", "addrMode": "zpx"},
-    0x58: {"mnemonic": "cli", "addrMode": "imp"},
-    0x59: {"mnemonic": "eor", "addrMode": "aby"},
-    0x5d: {"mnemonic": "eor", "addrMode": "abx"},
-    0x5e: {"mnemonic": "lsr", "addrMode": "abx"},
-    0x60: {"mnemonic": "rts", "addrMode": "imp"},
-    0x61: {"mnemonic": "adc", "addrMode": "idx"},
-    0x65: {"mnemonic": "adc", "addrMode": "zp"},
-    0x66: {"mnemonic": "ror", "addrMode": "zp"},
-    0x68: {"mnemonic": "pla", "addrMode": "imp"},
-    0x69: {"mnemonic": "adc", "addrMode": "imm"},
-    0x6a: {"mnemonic": "ror", "addrMode": "ac"},
-    0x6c: {"mnemonic": "jmp", "addrMode": "id"},
-    0x6d: {"mnemonic": "adc", "addrMode": "ab"},
-    0x6e: {"mnemonic": "ror", "addrMode": "ab"},
-    0x70: {"mnemonic": "bvs", "addrMode": "re"},
-    0x71: {"mnemonic": "adc", "addrMode": "idy"},
-    0x75: {"mnemonic": "adc", "addrMode": "zpx"},
-    0x76: {"mnemonic": "ror", "addrMode": "zpx"},
-    0x78: {"mnemonic": "sei", "addrMode": "imp"},
-    0x79: {"mnemonic": "adc", "addrMode": "aby"},
-    0x7d: {"mnemonic": "adc", "addrMode": "abx"},
-    0x7e: {"mnemonic": "ror", "addrMode": "abx"},
-    0x81: {"mnemonic": "sta", "addrMode": "idx"},
-    0x84: {"mnemonic": "sty", "addrMode": "zp"},
-    0x85: {"mnemonic": "sta", "addrMode": "zp"},
-    0x86: {"mnemonic": "stx", "addrMode": "zp"},
-    0x88: {"mnemonic": "dey", "addrMode": "imp"},
-    0x8a: {"mnemonic": "txa", "addrMode": "imp"},
-    0x8c: {"mnemonic": "sty", "addrMode": "ab"},
-    0x8d: {"mnemonic": "sta", "addrMode": "ab"},
-    0x8e: {"mnemonic": "stx", "addrMode": "ab"},
-    0x90: {"mnemonic": "bcc", "addrMode": "re"},
-    0x91: {"mnemonic": "sta", "addrMode": "idy"},
-    0x94: {"mnemonic": "sty", "addrMode": "zpx"},
-    0x95: {"mnemonic": "sta", "addrMode": "zpx"},
-    0x96: {"mnemonic": "stx", "addrMode": "zpy"},
-    0x98: {"mnemonic": "tya", "addrMode": "imp"},
-    0x99: {"mnemonic": "sta", "addrMode": "aby"},
-    0x9a: {"mnemonic": "txs", "addrMode": "imp"},
-    0x9d: {"mnemonic": "sta", "addrMode": "abx"},
-    0xa0: {"mnemonic": "ldy", "addrMode": "imm"},
-    0xa1: {"mnemonic": "lda", "addrMode": "idx"},
-    0xa2: {"mnemonic": "ldx", "addrMode": "imm"},
-    0xa4: {"mnemonic": "ldy", "addrMode": "zp"},
-    0xa5: {"mnemonic": "lda", "addrMode": "zp"},
-    0xa6: {"mnemonic": "ldx", "addrMode": "zp"},
-    0xa8: {"mnemonic": "tay", "addrMode": "imp"},
-    0xa9: {"mnemonic": "lda", "addrMode": "imm"},
-    0xaa: {"mnemonic": "tax", "addrMode": "imp"},
-    0xac: {"mnemonic": "ldy", "addrMode": "ab"},
-    0xad: {"mnemonic": "lda", "addrMode": "ab"},
-    0xae: {"mnemonic": "ldx", "addrMode": "ab"},
-    0xb0: {"mnemonic": "bcs", "addrMode": "re"},
-    0xb1: {"mnemonic": "lda", "addrMode": "idy"},
-    0xb4: {"mnemonic": "ldy", "addrMode": "zpx"},
-    0xb5: {"mnemonic": "lda", "addrMode": "zpx"},
-    0xb6: {"mnemonic": "ldx", "addrMode": "zpy"},
-    0xb8: {"mnemonic": "clv", "addrMode": "imp"},
-    0xb9: {"mnemonic": "lda", "addrMode": "aby"},
-    0xba: {"mnemonic": "tsx", "addrMode": "imp"},
-    0xbc: {"mnemonic": "ldy", "addrMode": "abx"},
-    0xbd: {"mnemonic": "lda", "addrMode": "abx"},
-    0xbe: {"mnemonic": "ldx", "addrMode": "aby"},
-    0xc0: {"mnemonic": "cpy", "addrMode": "imm"},
-    0xc1: {"mnemonic": "cmp", "addrMode": "idx"},
-    0xc4: {"mnemonic": "cpy", "addrMode": "zp"},
-    0xc5: {"mnemonic": "cmp", "addrMode": "zp"},
-    0xc6: {"mnemonic": "dec", "addrMode": "zp"},
-    0xc8: {"mnemonic": "iny", "addrMode": "imp"},
-    0xc9: {"mnemonic": "cmp", "addrMode": "imm"},
-    0xca: {"mnemonic": "dex", "addrMode": "imp"},
-    0xcc: {"mnemonic": "cpy", "addrMode": "ab"},
-    0xcd: {"mnemonic": "cmp", "addrMode": "ab"},
-    0xce: {"mnemonic": "dec", "addrMode": "ab"},
-    0xd0: {"mnemonic": "bne", "addrMode": "re"},
-    0xd1: {"mnemonic": "cmp", "addrMode": "idy"},
-    0xd5: {"mnemonic": "cmp", "addrMode": "zpx"},
-    0xd6: {"mnemonic": "dec", "addrMode": "zpx"},
-    0xd8: {"mnemonic": "cld", "addrMode": "imp"},
-    0xd9: {"mnemonic": "cmp", "addrMode": "aby"},
-    0xdd: {"mnemonic": "cmp", "addrMode": "abx"},
-    0xde: {"mnemonic": "dec", "addrMode": "abx"},
-    0xe0: {"mnemonic": "cpx", "addrMode": "imm"},
-    0xe1: {"mnemonic": "sbc", "addrMode": "idx"},
-    0xe4: {"mnemonic": "cpx", "addrMode": "zp"},
-    0xe5: {"mnemonic": "sbc", "addrMode": "zp"},
-    0xe6: {"mnemonic": "inc", "addrMode": "zp"},
-    0xe8: {"mnemonic": "inx", "addrMode": "imp"},
-    0xe9: {"mnemonic": "sbc", "addrMode": "imm"},
-    0xea: {"mnemonic": "nop", "addrMode": "imp"},
-    0xec: {"mnemonic": "cpx", "addrMode": "ab"},
-    0xed: {"mnemonic": "sbc", "addrMode": "ab"},
-    0xee: {"mnemonic": "inc", "addrMode": "ab"},
-    0xf0: {"mnemonic": "beq", "addrMode": "re"},
-    0xf1: {"mnemonic": "sbc", "addrMode": "idy"},
-    0xf5: {"mnemonic": "sbc", "addrMode": "zpx"},
-    0xf6: {"mnemonic": "inc", "addrMode": "zpx"},
-    0xf8: {"mnemonic": "sed", "addrMode": "imp"},
-    0xf9: {"mnemonic": "sbc", "addrMode": "aby"},
-    0xfd: {"mnemonic": "sbc", "addrMode": "abx"},
-    0xfe: {"mnemonic": "inc", "addrMode": "abx"},
+# opcode: (mnemonic, addressing mode)
+OPCODES = {
+    0x00: ("brk", AM_IMP),
+    0x01: ("ora", AM_IX),
+    0x05: ("ora", AM_Z),
+    0x06: ("asl", AM_Z),
+    0x08: ("php", AM_IMP),
+    0x09: ("ora", AM_IMM),
+    0x0a: ("asl", AM_AC),
+    0x0d: ("ora", AM_AB),
+    0x0e: ("asl", AM_AB),
+    0x10: ("bpl", AM_R),
+    0x11: ("ora", AM_IY),
+    0x15: ("ora", AM_ZX),
+    0x16: ("asl", AM_ZX),
+    0x18: ("clc", AM_IMP),
+    0x19: ("ora", AM_ABY),
+    0x1d: ("ora", AM_ABX),
+    0x1e: ("asl", AM_ABX),
+    0x20: ("jsr", AM_AB),
+    0x21: ("and", AM_IX),
+    0x24: ("bit", AM_Z),
+    0x25: ("and", AM_Z),
+    0x26: ("rol", AM_Z),
+    0x28: ("plp", AM_IMP),
+    0x29: ("and", AM_IMM),
+    0x2a: ("rol", AM_AC),
+    0x2c: ("bit", AM_AB),
+    0x2d: ("and", AM_AB),
+    0x2e: ("rol", AM_AB),
+    0x30: ("bmi", AM_R),
+    0x31: ("and", AM_IY),
+    0x35: ("and", AM_ZX),
+    0x36: ("rol", AM_ZX),
+    0x38: ("sec", AM_IMP),
+    0x39: ("and", AM_ABY),
+    0x3d: ("and", AM_ABX),
+    0x3e: ("rol", AM_ABX),
+    0x40: ("rti", AM_IMP),
+    0x41: ("eor", AM_IX),
+    0x45: ("eor", AM_Z),
+    0x46: ("lsr", AM_Z),
+    0x48: ("pha", AM_IMP),
+    0x49: ("eor", AM_IMM),
+    0x4a: ("lsr", AM_AC),
+    0x4c: ("jmp", AM_AB),
+    0x4d: ("eor", AM_AB),
+    0x4e: ("lsr", AM_AB),
+    0x50: ("bvc", AM_R),
+    0x51: ("eor", AM_IY),
+    0x55: ("eor", AM_ZX),
+    0x56: ("lsr", AM_ZX),
+    0x58: ("cli", AM_IMP),
+    0x59: ("eor", AM_ABY),
+    0x5d: ("eor", AM_ABX),
+    0x5e: ("lsr", AM_ABX),
+    0x60: ("rts", AM_IMP),
+    0x61: ("adc", AM_IX),
+    0x65: ("adc", AM_Z),
+    0x66: ("ror", AM_Z),
+    0x68: ("pla", AM_IMP),
+    0x69: ("adc", AM_IMM),
+    0x6a: ("ror", AM_AC),
+    0x6c: ("jmp", AM_I),
+    0x6d: ("adc", AM_AB),
+    0x6e: ("ror", AM_AB),
+    0x70: ("bvs", AM_R),
+    0x71: ("adc", AM_IY),
+    0x75: ("adc", AM_ZX),
+    0x76: ("ror", AM_ZX),
+    0x78: ("sei", AM_IMP),
+    0x79: ("adc", AM_ABY),
+    0x7d: ("adc", AM_ABX),
+    0x7e: ("ror", AM_ABX),
+    0x81: ("sta", AM_IX),
+    0x84: ("sty", AM_Z),
+    0x85: ("sta", AM_Z),
+    0x86: ("stx", AM_Z),
+    0x88: ("dey", AM_IMP),
+    0x8a: ("txa", AM_IMP),
+    0x8c: ("sty", AM_AB),
+    0x8d: ("sta", AM_AB),
+    0x8e: ("stx", AM_AB),
+    0x90: ("bcc", AM_R),
+    0x91: ("sta", AM_IY),
+    0x94: ("sty", AM_ZX),
+    0x95: ("sta", AM_ZX),
+    0x96: ("stx", AM_ZY),
+    0x98: ("tya", AM_IMP),
+    0x99: ("sta", AM_ABY),
+    0x9a: ("txs", AM_IMP),
+    0x9d: ("sta", AM_ABX),
+    0xa0: ("ldy", AM_IMM),
+    0xa1: ("lda", AM_IX),
+    0xa2: ("ldx", AM_IMM),
+    0xa4: ("ldy", AM_Z),
+    0xa5: ("lda", AM_Z),
+    0xa6: ("ldx", AM_Z),
+    0xa8: ("tay", AM_IMP),
+    0xa9: ("lda", AM_IMM),
+    0xaa: ("tax", AM_IMP),
+    0xac: ("ldy", AM_AB),
+    0xad: ("lda", AM_AB),
+    0xae: ("ldx", AM_AB),
+    0xb0: ("bcs", AM_R),
+    0xb1: ("lda", AM_IY),
+    0xb4: ("ldy", AM_ZX),
+    0xb5: ("lda", AM_ZX),
+    0xb6: ("ldx", AM_ZY),
+    0xb8: ("clv", AM_IMP),
+    0xb9: ("lda", AM_ABY),
+    0xba: ("tsx", AM_IMP),
+    0xbc: ("ldy", AM_ABX),
+    0xbd: ("lda", AM_ABX),
+    0xbe: ("ldx", AM_ABY),
+    0xc0: ("cpy", AM_IMM),
+    0xc1: ("cmp", AM_IX),
+    0xc4: ("cpy", AM_Z),
+    0xc5: ("cmp", AM_Z),
+    0xc6: ("dec", AM_Z),
+    0xc8: ("iny", AM_IMP),
+    0xc9: ("cmp", AM_IMM),
+    0xca: ("dex", AM_IMP),
+    0xcc: ("cpy", AM_AB),
+    0xcd: ("cmp", AM_AB),
+    0xce: ("dec", AM_AB),
+    0xd0: ("bne", AM_R),
+    0xd1: ("cmp", AM_IY),
+    0xd5: ("cmp", AM_ZX),
+    0xd6: ("dec", AM_ZX),
+    0xd8: ("cld", AM_IMP),
+    0xd9: ("cmp", AM_ABY),
+    0xdd: ("cmp", AM_ABX),
+    0xde: ("dec", AM_ABX),
+    0xe0: ("cpx", AM_IMM),
+    0xe1: ("sbc", AM_IX),
+    0xe4: ("cpx", AM_Z),
+    0xe5: ("sbc", AM_Z),
+    0xe6: ("inc", AM_Z),
+    0xe8: ("inx", AM_IMP),
+    0xe9: ("sbc", AM_IMM),
+    0xea: ("nop", AM_IMP),
+    0xec: ("cpx", AM_AB),
+    0xed: ("sbc", AM_AB),
+    0xee: ("inc", AM_AB),
+    0xf0: ("beq", AM_R),
+    0xf1: ("sbc", AM_IY),
+    0xf5: ("sbc", AM_ZX),
+    0xf6: ("inc", AM_ZX),
+    0xf8: ("sed", AM_IMP),
+    0xf9: ("sbc", AM_ABY),
+    0xfd: ("sbc", AM_ABX),
+    0xfe: ("inc", AM_ABX),
 }
 
 # NES memory-mapped registers
@@ -310,6 +329,14 @@ def get_origin(bankSize, args):
         sys.exit("Origin must not be less than 32768 or greater than 65536 minus bank size.")
     return origin
 
+def decode_16bit_address(bytes_):
+    return bytes_[0] + bytes_[1] * 0x100
+
+def decode_relative_address(base, offset):
+    """base: 16-bit int, offset: 8-bit int, return: int (may over-/underflow 16 bits)"""
+
+    return base + 2 - (offset & 0x80) + (offset & 0x7f)
+
 def get_instruction_addresses(handle, args):
     """Generate PRG addresses of instructions (where they *are*) from a PRG file.
     handle: file handle, args: from argparse, yield: one int per call"""
@@ -356,7 +383,7 @@ def get_instruction_addresses(handle, args):
     bankSize = get_bank_size(fileSize, args)
     origin = get_origin(bankSize, args)
 
-    # quite similar to main loops in get_labels() and disassemble()
+    # quite similar to main loops elsewhere
     for (bankIndex, bankAddr) in enumerate(range(0, fileSize, bankSize)):
         handle.seek(bankAddr)
         bankContents = handle.read(bankSize)
@@ -368,39 +395,39 @@ def get_instruction_addresses(handle, args):
             # are the next 1...3 bytes a valid opcode and operand?
             # (this can't be a function because we access many look-up tables)
             isInstruction = False
-            if opcode in INSTRUCTIONS and opcode not in noOpcodes:
-                mnemonic = INSTRUCTIONS[opcode]["mnemonic"]
-                addrMode = INSTRUCTIONS[opcode]["addrMode"]
+            if opcode in OPCODES and opcode not in noOpcodes:
+                (mnemonic, addrMode) = OPCODES[opcode]
+                operandSize = ADDRESSING_MODES[addrMode][0]
 
-                if bankSize - offset >= 1 + ADDR_MODES[addrMode]["operandSize"]:
+                if bankSize - offset >= 1 + operandSize:
                     # operand fits in same bank
-                    if addrMode in ("imp", "ac", "imm"):
+                    if addrMode in (AM_IMP, AM_AC, AM_IMM):
                         # operand is not an address; accept it
                         isInstruction = True
                     else:
                         # decode address
-                        if addrMode in ("zp", "zpx", "zpy", "idx", "idy", "re"):
+                        if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
                             addr = bankContents[offset+1]
-                            if addrMode == "re":
-                                addr = offset + 2 - (addr & 0x80) + (addr & 0x7f)
+                            if addrMode == AM_R:
+                                addr = decode_relative_address(offset, addr)
                                 if 0 <= addr < bankSize:
                                     addr += origin
                                 else:
                                     addr = None  # invalid (target in different bank)
                         else:
-                            addr = bankContents[offset+1] + bankContents[offset+2] * 0x100
+                            addr = decode_16bit_address(bankContents[offset+1:offset+3])
 
                         if addr is not None:
                             # address was valid
                             isInstruction = not (
                                 # uses absolute instead of zero page
                                 args.no_absolute_zp
-                                and addrMode == "ab" and mnemonic not in ("jmp", "jsr")
+                                and addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
                                 and addr <= 0xff
                             ) and not (
                                 # uses absolute indexed instead of corresponding zero page indexed
                                 args.no_absolute_indexed_zp \
-                                and (addrMode == "abx" or addrMode == "aby" and mnemonic == "ldx")
+                                and (addrMode == AM_ABX or addrMode == AM_ABY and mnemonic == "ldx")
                                 and addr <= 0xff
                             ) and not (
                                 # accesses an excluded address
@@ -410,20 +437,20 @@ def get_instruction_addresses(handle, args):
                                 mnemonic in (
                                     "asl", "dec", "inc", "lsr", "rol", "ror", "sta", "stx", "sty"
                                 )
-                                and addrMode in ("zp", "zpx", "zpy", "ab", "abx", "aby")
+                                and addrMode in (AM_Z, AM_ZX, AM_ZY, AM_AB, AM_ABX, AM_ABY)
                                 and any(addr in rng for rng in noWrite)
                             ) and not (
                                 # executes an excluded address
                                 (
-                                    mnemonic in ("jmp", "jsr") and addrMode == "ab"
-                                    or addrMode == "re"
+                                    mnemonic in ("jmp", "jsr") and addrMode == AM_AB
+                                    or addrMode == AM_R
                                 )
                                 and any(addr in rng for rng in noExecute)
                             )
 
             if isInstruction:
                 yield bankAddr + offset
-                offset += 1 + ADDR_MODES[addrMode]["operandSize"]
+                offset += 1 + operandSize
             else:
                 # data
                 offset += 1
@@ -435,6 +462,7 @@ def get_labels(handle, instrAddresses, args):
 
     validPRGLabels = set()  # valid addresses for PRG ROM labels (0x8000...0xffff)
 
+    #labels = {}  # key: CPU address, value: refer count
     codeLabels = set()  # addresses referred to as code
     dataLabels = set()  # addresses referred to as data (may contain addresses also in codeLabels)
 
@@ -444,7 +472,7 @@ def get_labels(handle, instrAddresses, args):
         print("Warning: game uses bankswitching; PRG ROM labels disabled.", file=sys.stderr)
     origin = get_origin(bankSize, args)
 
-    # quite similar to main loops elsewhere
+    # quite similar to main loops elsewhere, especially in disassemble()
     for (bankIndex, bankAddr) in enumerate(range(0, fileSize, bankSize)):
         handle.seek(bankAddr)
         bankContents = handle.read(bankSize)
@@ -457,25 +485,28 @@ def get_labels(handle, instrAddresses, args):
             if bankAddr + offset in instrAddresses:
                 # instruction
                 opcode = bankContents[offset]
-                mnemonic = INSTRUCTIONS[opcode]["mnemonic"]
-                addrMode = INSTRUCTIONS[opcode]["addrMode"]
+                (mnemonic, addrMode) = OPCODES[opcode]
+                operandSize = ADDRESSING_MODES[addrMode][0]
 
-                if addrMode not in ("imp", "ac", "imm"):
+                if addrMode not in (AM_IMP, AM_AC, AM_IMM):
                     # operand is an address
                     # decode operand
-                    if addrMode in ("zp", "zpx", "zpy", "idx", "idy", "re"):
+                    if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
                         addr = bankContents[offset+1]
-                        if addrMode == "re":
-                            addr = origin + offset + 2 - (addr & 0x80) + (addr & 0x7f)
+                        if addrMode == AM_R:
+                            addr = decode_relative_address(origin + offset, addr)
                     else:
-                        addr = bankContents[offset+1] + bankContents[offset+2] * 0x100
+                        addr = decode_16bit_address(bankContents[offset+1:offset+3])
+
+                    #labels[origin+offset] = labels.get(origin + offset, 0) + 1
+
                     # store as code or data label
-                    if mnemonic in ("jmp", "jsr") and addrMode != "id" or addrMode == "re":
+                    if mnemonic in ("jmp", "jsr") and addrMode != AM_I or addrMode == AM_R:
                         codeLabels.add(addr)
                     else:
                         dataLabels.add(addr)
 
-                offset += 1 + ADDR_MODES[INSTRUCTIONS[opcode]["addrMode"]]["operandSize"]
+                offset += 1 + operandSize
             else:
                 # data
                 offset += 1
@@ -491,7 +522,7 @@ def get_labels(handle, instrAddresses, args):
     labelDict = {}
     # RAM
     addresses = sorted(addr for addr in codeLabels | dataLabels if addr <= 0x1fff)
-    labelDict.update((addr, f"ram{i+1}") for (i, addr) in enumerate(addresses))
+    labelDict.update((addr, f"ra{i+1}") for (i, addr) in enumerate(addresses))
     # hardware registers
     addresses = sorted((codeLabels | dataLabels) & set(HARDWARE_REGISTERS))
     labelDict.update((addr, HARDWARE_REGISTERS[addr]) for addr in addresses)
@@ -500,16 +531,16 @@ def get_labels(handle, instrAddresses, args):
         addr for addr in (codeLabels | dataLabels) - set(HARDWARE_REGISTERS)
         if 0x2000 <= addr <= 0x7fff
     )
-    labelDict.update((addr, f"misc{i+1}") for (i, addr) in enumerate(addresses))
+    labelDict.update((addr, f"mi{i+1}") for (i, addr) in enumerate(addresses))
     # PRG ROM - code
     addresses = sorted(addr for addr in codeLabels - dataLabels if addr >= 0x8000)
-    labelDict.update((addr, f"code{i+1}") for (i, addr) in enumerate(addresses))
+    labelDict.update((addr, f"co{i+1}") for (i, addr) in enumerate(addresses))
     # PRG ROM - data
     addresses = sorted(addr for addr in dataLabels - codeLabels if addr >= 0x8000)
-    labelDict.update((addr, f"data{i+1}") for (i, addr) in enumerate(addresses))
+    labelDict.update((addr, f"da{i+1}") for (i, addr) in enumerate(addresses))
     # PRG ROM - code & data
     addresses = sorted(addr for addr in codeLabels & dataLabels if addr >= 0x8000)
-    labelDict.update((addr, f"codedata{i+1}") for (i, addr) in enumerate(addresses))
+    labelDict.update((addr, f"cd{i+1}") for (i, addr) in enumerate(addresses))
 
     return labelDict
 
@@ -517,159 +548,200 @@ def disassemble(handle, instrAddresses, labels, args):
     """Disassemble a PRG file.
     handle: file handle, instrAddresses: set, labels: dict, args: from argparse, return: None"""
 
-    def generate_data_lines(data, addr, labels):
-        """Generate lines with data bytes.
+    def format_literal(value, bits=8, base=16):
+        """Format an asm6f integer literal.
+        value: int, bits: 8/16, base: 2/10/16, return: str"""
+
+        if bits == 16:
+            assert 0 <= value <= 0xffff
+            if base == 16:
+                return f"${value:04x}"
+        if bits == 8:
+            assert 0 <= value <= 0xff
+            if base == 16:
+                return f"${value:02x}"
+            if base == 10:
+                return f"{value:d}"
+            if base == 2:
+                return f"%{value:08b}"
+        assert False
+
+    def print_line(label, instruction, operand, comment=""):
+        """Print an asm6f line (one or two lines).
+        label: str/None (without trailing colon), instruction: str,
+        comment: str (without leading semicolon), return: str"""
+
+        if label is None:
+            label = ""
+
+        # if label isn't anonymous, append a colon
+        if set(label) - set("-+"):
+            label += ":"
+
+        # if label is too long, print it on its own line and ignore it later
+        if len(label) > INDENT_WIDTH:
+            print(label)
+            label = ""
+
+        # print 2nd or only line
+        labelFormat = str(INDENT_WIDTH) + "s" if instruction or operand else "s"
+        operandSeparator = " " if instruction and operand else ""
+        instrFormat = "25s" if (instruction or operand) and comment else "s"
+        print("".join((
+            format(label, labelFormat),
+            format(instruction + operandSeparator + operand, instrFormat),
+            "; " if comment else "",
+            comment
+        )))
+
+    def print_data_lines(data, addr):
+        """Print lines with data bytes.
         data: bytes, addr: int, labels: dict, yield: str"""
 
-        def generate_data_block(data, addr):
-            """Generate lines with data bytes without labels.
-            If addr is specified, output it on the first line only.
-            data: bytes, addr: int, yield: str"""
-
-            for offset in range(0, len(data), 8):
-                line = "    hex " + " ".join(f"{byte:02x}" for byte in data[offset:offset+8])
-                yield f"{line:33s}; {addr+offset:04x}"
-
-        startOffset = 0  # offset of the first byte not yet output
+        startOffset = 0  # current block
+        prevLabel = ""
 
         for (offset, byte) in enumerate(data):
             label = labels.get(addr + offset)
-            if label is not None:
-                yield from generate_data_block(data[startOffset:offset], addr + startOffset)
-                startOffset = offset
-                print(f"{label+':':33s}; {addr+offset:04x}")
+            if label is not None or offset - startOffset == 8:
+                # a new block starts; print old one, if any
+                if offset > startOffset:
+                    print_line(
+                        prevLabel, "hex", data[startOffset:offset].hex(), f"{addr+offset:04x}"
+                    )
+                    startOffset = offset
+                prevLabel = label
 
-        yield from generate_data_block(data[startOffset:], addr + startOffset)
+        # print last block, if any
+        if len(data) > startOffset:
+            print_line(prevLabel, "hex", data[startOffset:].hex(), f"{addr+offset:04x}")
+
+    def format_operand_value(instrBytes):
+        """instrBytes: 1...3 bytes, return: str"""
+
+        (mnemonic, addrMode) = OPCODES[instrBytes[0]]
+
+        if addrMode in (AM_IMP, AM_AC):
+            # none
+            return ""
+        if addrMode == AM_IMM:
+            # immediate
+            if mnemonic in ("and", "eor", "ora"):
+                return format_literal(instrBytes[1], 8, 2)
+            if mnemonic in ("cpx", "cpy", "ldx", "ldy"):
+                return format_literal(instrBytes[1], 8, 10)
+            return format_literal(instrBytes[1])
+        if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY):
+            # 8-bit address
+            addr = instrBytes[1]
+            return labels.get(addr, format_literal(addr))
+        # relative or 16-bit
+        if addrMode == AM_R:
+            addr = instrBytes[1]
+            addr = decode_relative_address(origin + offset, addr)
+        else:
+            addr = decode_16bit_address(instrBytes[1:3])
+        return labels.get(addr, format_literal(addr, 16))
 
     fileSize = get_file_size(handle)
     bankSize = get_bank_size(fileSize, args)
     origin = get_origin(bankSize, args)
 
-    print(f"; Input file: {os.path.basename(handle.name)}")
-    print(f"; PRG ROM size: {fileSize} (0x{fileSize:04x})")
-    print(f"; Bank size: {bankSize} (0x{bankSize:04x})")
-    print(f"; Number of banks: {fileSize//bankSize}")
-    print(f"; Bank CPU address: 0x{origin:04x}...0x{origin+bankSize-1:04x}")
-    print(f"; Number of instructions: {len(instrAddresses)}")
-    print(f"; Number of labels: {len(labels)}")
+    print_line("", "", "", f"Input file: {os.path.basename(handle.name)}")
+    print_line("", "", "", f"PRG ROM size: {fileSize} (0x{fileSize:04x})")
+    print_line("", "", "", f"Bank size: {bankSize} (0x{bankSize:04x})")
+    print_line("", "", "", f"Number of banks: {fileSize//bankSize}")
+    print_line("", "", "", f"Bank CPU address: 0x{origin:04x}...0x{origin+bankSize-1:04x}")
+    print_line("", "", "", f"Number of instructions: {len(instrAddresses)}")
+    print_line("", "", "", f"Number of labels: {len(labels)}")
     print()
 
-    print("; === RAM labels ($0000...$01fff) ===")
+    print_line("", "", "", "=== RAM labels ($0000...$01fff) ===")
     print()
     # zero page
     for addr in sorted(l for l in labels if l <= 0xff):
-        print(f"{labels[addr]:15s} equ ${addr:02x}")
+        print(f"{labels[addr]:15s} equ " + format_literal(addr))
     print()
     # other RAM labels
     for addr in sorted(l for l in labels if 0x0100 <= l <= 0x1fff):
-        print(f"{labels[addr]:15s} equ ${addr:04x}")
+        print(f"{labels[addr]:15s} equ " + format_literal(addr, 16))
     print()
 
-    print("; === NES memory-mapped registers ===")
+    print_line("", "", "", "=== NES memory-mapped registers ===")
     print()
     for addr in sorted(HARDWARE_REGISTERS):
-        print("{name:11s} equ ${addr:04x}".format(
+        print("{name:11s} equ {addr}".format(
             name=("" if addr in labels else ";") + HARDWARE_REGISTERS[addr],
-            addr=addr
+            addr=format_literal(addr, 16)
         ))
     print()
 
-    print("; === Misc labels ($2000...$7fff excluding NES memory-mapped registers) ===")
+    print_line(
+        "", "", "", "=== Misc labels ($2000...$7fff excluding NES memory-mapped registers) ==="
+    )
     print()
     for addr in sorted(l for l in set(labels) - set(HARDWARE_REGISTERS) if 0x2000 <= l <= 0x7fff):
-        print(f"{labels[addr]:15s} equ ${addr:04x}")
+        print(f"{labels[addr]:15s} equ " + format_literal(addr, 16))
     print()
 
-    # quite similar to main loops elsewhere
+    # quite similar to main loops elsewhere, especially in get_labels()
     for (bankIndex, bankAddr) in enumerate(range(0, fileSize, bankSize)):
-        print(
+        print_line(
+            "", "", "",
             f"; === Bank {bankIndex} (PRG ROM 0x{bankAddr:04x}...0x{bankAddr+bankSize-1:04x}) ==="
         )
         print()
-        print("    base ${:04x}".format(origin))
+        print_line("", "base", format_literal(origin, 16))
         print()
 
         handle.seek(bankAddr)
         bankContents = handle.read(bankSize)
 
         offset = 0  # within bank
-        dataStartOffset = None  # where current string of data bytes started
+        dataStart = None  # where current string of data bytes started (offsett within bank)
 
         while offset < bankSize:
             if bankAddr + offset in instrAddresses:
-                if dataStartOffset is not None:
-                    # print previous data bytes
-                    for line in generate_data_lines(
-                        bankContents[dataStartOffset:offset], origin + dataStartOffset, labels
-                    ):
-                        print(line)
+                # instruction
+                # print previous data bytes, if any
+                if dataStart is not None:
+                    print_data_lines(
+                        bankContents[dataStart:offset], origin + dataStart
+                    )
                     print()
-                    dataStartOffset = None
-                # print label if any
-                try:
-                    print(f"{labels[origin+offset]}:")
-                except KeyError:
-                    pass
+                    dataStart = None
+
+                # get label, if any
+                label = labels.get(origin + offset, "")
 
                 opcode = bankContents[offset]
-                addrMode = INSTRUCTIONS[opcode]["addrMode"]
-                mnemonic = INSTRUCTIONS[opcode]["mnemonic"]
-                operandSize = ADDR_MODES[INSTRUCTIONS[opcode]["addrMode"]]["operandSize"]
+                (mnemonic, addrMode) = OPCODES[opcode]
+                (operandSize, operandFormat) = ADDRESSING_MODES[addrMode]
 
-                # format operand value
-                if addrMode in ("imp", "ac"):
-                    # none
-                    operand = ""
-                elif addrMode == "imm":
-                    # immediate
-                    if mnemonic in ("and", "eor", "ora"):
-                        operand = f"%{bankContents[offset+1]:08b}"  # binary
-                    elif mnemonic in ("cpx", "cpy", "ldx", "ldy"):
-                        operand = f"{bankContents[offset+1]:d}"  # decimal
-                    else:
-                        operand = f"${bankContents[offset+1]:02x}"  # hexadecimal
-                elif addrMode in ("zp", "zpx", "zpy", "idx", "idy"):
-                    # 8-bit address
-                    addr = bankContents[offset+1]
-                    operand = labels.get(addr, f"${addr:02x}")
-                else:
-                    # relative or 16-bit
-                    if addrMode == "re":
-                        addr = bankContents[offset+1]
-                        addr = origin + offset + 2 - (addr & 0x80) + (addr & 0x7f)
-                    else:
-                        addr = bankContents[offset+1] + bankContents[offset+2] * 0x100
-                    operand = labels.get(addr, f"${addr:04x}")
-
-                # add prefix and suffix to operand
-                operand = ADDR_MODES[INSTRUCTIONS[opcode]["addrMode"]]["prefix"] \
-                + operand \
-                + ADDR_MODES[INSTRUCTIONS[opcode]["addrMode"]]["suffix"]
-
-                # combine indentation, mnemonic and operand
-                line = "    " \
-                + INSTRUCTIONS[opcode]["mnemonic"] \
-                + (" " + operand if operand else "")
-
-                # format comment
+                # get instruction (opcode + operand)
                 instrBytes = bankContents[offset:offset+1+operandSize]
-                hexBytes = " ".join(f"{byte:02x}" for byte in instrBytes)
 
-                print(f"{line:33s}; {origin+offset:04x}: {hexBytes}")
+                # print instruction line
+                operand = operandFormat.format(format_operand_value(instrBytes))
+                print_line(
+                    label, mnemonic, operand, f"{origin+offset:04x}: {instrBytes.hex()}"
+                )
+
+                # print an empty line after an unconditional control flow instruction
                 if mnemonic in ("jmp", "rti", "rts"):
-                    print()
+                    print_line("", "", "", "")
 
                 offset += 1 + operandSize
             else:
-                dataStartOffset = offset if dataStartOffset is None else dataStartOffset
+                # data
+                # start a new data block if not already inside one
+                if dataStart is None:
+                    dataStart = offset
                 offset += 1
 
-        if dataStartOffset is not None:
-            # print last data bytes
-            for line in generate_data_lines(
-                bankContents[dataStartOffset:offset], origin + dataStartOffset, labels
-            ):
-                print(line)
+        # print last data bytes, if any
+        if dataStart is not None:
+            print_data_lines(bankContents[dataStart:offset], origin + dataStart)
 
         print()
 
