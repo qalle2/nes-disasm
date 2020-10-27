@@ -7,6 +7,12 @@ asm6f test-out/all-instructions.asm test-out/all-instructions-reassembled.bin
 diff test-in/all-instructions.prg test-out/all-instructions-reassembled.bin
 echo
 
+echo "=== anontest.prg (disassemble, reassemble, verify) ==="
+python3 nesdisasm.py test-in/anontest.prg > test-out/anontest.asm
+asm6f test-out/anontest.asm test-out/anontest-reassembled.bin
+diff test-in/anontest.prg test-out/anontest-reassembled.bin
+echo
+
 echo "=== Game Genie (disassemble, reassemble, verify) ==="
 python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00 --no-access 0800-1fff,2008-3fff,4020-7fff --no-execute 2000-401f test-in/gamegenie.prg > test-out/gamegenie.asm
 asm6f test-out/gamegenie.asm test-out/gamegenie-reassembled.bin
