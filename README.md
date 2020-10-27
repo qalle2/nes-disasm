@@ -4,6 +4,7 @@ An NES (6502) disassembler. The output is compatible with [asm6f](https://github
 Notes:
 * The Linux script `test` is intended for my personal use. Do not run it without reading it.
 * The program does not support iNES ROM files (`.nes`); to convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).
+* The program isn't very useful with games that use PRG ROM bankswitching (i.e., most games).
 
 ## Features
 * Automatically assigns labels to addresses:
@@ -18,6 +19,7 @@ Notes:
     * `code1`, `code2`, &hellip;: other code (never accessed with JSR, but accessed at least once with JMP absolute or a branch instruction)
     * `+`, `-`, &hellip;: anonymous code labels (only accessed with nearby JMP absolute or branch instructions, with no other labels in between)
     * `data1`, `data2`, &hellip;: data (never accessed with JSR, JMP absolute or a branch instruction)
+* Limited support for FCEUX code/data log files (`.cdl`): if a PRG ROM byte has been flagged as data and not code in the CDL file (CDL byte `0bxxxxxx10`), that PRG ROM byte will always be disassembled as data.
 
 ## Command line arguments
 ```
@@ -26,7 +28,7 @@ usage: nesdisasm.py [-h]
                     [--origin ORIGIN] [--no-absolute-zp]
                     [--no-absolute-indexed-zp] [--no-opcodes NO_OPCODES]
                     [--no-access NO_ACCESS] [--no-write NO_WRITE]
-                    [--no-execute NO_EXECUTE]
+                    [--no-execute NO_EXECUTE] [--cdl-file CDL_FILE]
                     input_file
 
 An NES (6502) disassembler.
@@ -74,11 +76,12 @@ optional arguments:
                         JMP/JSR/branch). Same syntax as in --no-access.
                         Examples: 0000-1fff = RAM, 2000-401f = memory-mapped
                         registers.
+  --cdl-file CDL_FILE   FCEUX code/data log file (.cdl) to use.
 ```
 
 ## To do (in order of descending priority)
+* Better support for CDL files.
 * Search for PRG ROM labels with bankswitched games too.
-* Support reading FCEUX Code/Data Logger files (`.cdl`).
 * Support reading iNES ROM files (`.nes`).
 * Support other assembler syntaxes.
 

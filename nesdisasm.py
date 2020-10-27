@@ -297,6 +297,9 @@ def parse_arguments():
         "in --no-access. Examples: 0000-1fff = RAM, 2000-401f = memory-mapped registers."
     )
     parser.add_argument(
+        "--cdl-file", type=str, default="", help="FCEUX code/data log file (.cdl) to use."
+    )
+    parser.add_argument(
         "input_file",
         help="The PRG ROM file to read. Size: 256 bytes to 4 MiB (4,194,304 bytes) and a multiple "
         "of 256 bytes. (.nes files are not currently supported.)"
@@ -307,9 +310,35 @@ def parse_arguments():
     if not os.path.isfile(args.input_file):
         sys.exit("Input file not found.")
 
+    if args.cdl_file and not os.path.isfile(args.cdl_file):
+        sys.exit("CDL file not found.")
+
     return args
 
 # -------------------------------------------------------------------------------------------------
+
+def read_cdl_file(handle, PRGSize):
+    """Read a FCEUX CDL file.
+    PRGSize: int, generate: ranges of addresses accessed as data but not as code"""
+
+    handle.seek(0)
+    CDLData = handle.read(PRGSize)
+    assert len(CDLData) <= 32 * 1024
+
+    dataStart = None  # start address of current data-only section
+
+    for (pos, byte) in enumerate(CDLData):
+        if byte & 0b11 == 0b10 and dataStart is None:
+            # a data section starts
+            dataStart = pos
+        elif byte & 0b11 != 0b10 and dataStart is not None:
+            # a data section ends
+            yield range(dataStart, pos)
+            dataStart = None
+
+    if dataStart is not None:
+        # the last data section ends
+        yield range(dataStart, len(CDLData))
 
 def get_file_size(handle):
     """Get and validate PRG file size."""
@@ -350,9 +379,10 @@ def decode_relative_address(base, offset):
 
 # -------------------------------------------------------------------------------------------------
 
-def get_instruction_addresses(handle, args):
-    """Generate PRG addresses of instructions (where they *are*) from a PRG file.
-    handle: file handle, args: from argparse, yield: one int per call"""
+def get_instruction_addresses(handle, CDLDataRanges, args):
+    """Generate PRG addresses of instructions from a PRG file.
+    handle: file handle, CDLDataRanges: set of ranges, args: from argparse,
+    yield: one int per call"""
 
     def parse_opcode_list(arg):
         """Parse a command line argument containing hexadecimal integers.
@@ -399,9 +429,17 @@ def get_instruction_addresses(handle, args):
             return False
 
         (mnemonic, addrMode) = OPCODES[opcode]
+        operandSize = ADDRESSING_MODES[addrMode][0]
 
         # not enough space in bank for opcode + operand?
-        if bankSize - offset < 1 + ADDRESSING_MODES[addrMode][0]:
+        if bankSize - offset < 1 + operandSize:
+            return False
+
+        # any byte of the instruction flagged as data only?
+        if any(
+            any(addr in rng for rng in CDLDataRanges)
+            for addr in range(offset, offset + 1 + operandSize)
+        ):
             return False
 
         # if operand is not an address, accept it
@@ -868,8 +906,19 @@ def main():
 
     args = parse_arguments()
 
+    try:
+        PRGSize = os.path.getsize(args.input_file)
+    except OSError:
+        sys.exit("Couldn't get PRG file size.")
+
+    if args.cdl_file:
+        with open(args.cdl_file, "rb") as handle:
+            CDLDataRanges = set(read_cdl_file(handle, PRGSize))
+    else:
+        CDLDataRanges = set()
+
     with open(args.input_file, "rb") as handle:
-        instrAddresses = set(get_instruction_addresses(handle, args))
+        instrAddresses = set(get_instruction_addresses(handle, CDLDataRanges, args))
         labelStats = get_label_stats(handle, instrAddresses, args)
         labels = create_label_names(labelStats)
         disassemble(handle, instrAddresses, labels, args)
