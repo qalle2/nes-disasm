@@ -1,11 +1,6 @@
 # nes-disasm
 An NES (6502) disassembler. The output is compatible with [asm6f](https://github.com/freem/asm6f). Work in progress.
 
-Notes:
-* The Linux script `test` is intended for my personal use. Do not run it without reading it.
-* The program does not support iNES ROM files (`.nes`); to convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).
-* The program isn't very useful with games that use PRG ROM bankswitching (i.e., most games).
-
 ## Features
 * Automatically assigns labels to addresses:
   * RAM (including mirrors, i.e. `$0000`&hellip;`$1fff`):
@@ -21,32 +16,30 @@ Notes:
     * `data1`, `data2`, &hellip;: data (never accessed with JSR, JMP absolute or a branch instruction)
 * Limited support for FCEUX code/data log files (`.cdl`): if a PRG ROM byte has been flagged as data and not code in the CDL file (CDL byte `0bxxxxxx10`), that PRG ROM byte will always be disassembled as data.
 
+## Limitations
+* iNES ROM files (`.nes`) are not supported. (To convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).)
+* PRG ROM files larger than 32 KiB (i.e., bankswitched games) are not supported.
+
+## Notes
+* The Linux scripts `test-*` are intended for my personal use. Do not run it without reading it.
+* The origin address is 64 KiB minus the PRG ROM file size.
+
 ## Command line arguments
 ```
-usage: nesdisasm.py [-h]
-                    [--bank-size {256,512,1024,2048,4096,8192,16384,32768}]
-                    [--origin ORIGIN] [--no-absolute-zp]
-                    [--no-absolute-indexed-zp] [--no-opcodes NO_OPCODES]
-                    [--no-access NO_ACCESS] [--no-write NO_WRITE]
-                    [--no-execute NO_EXECUTE] [--cdl-file CDL_FILE]
+usage: nesdisasm.py [-h] [--no-absolute-zp] [--no-absolute-indexed-zp]
+                    [--no-opcodes NO_OPCODES] [--no-access NO_ACCESS]
+                    [--no-write NO_WRITE] [--no-execute NO_EXECUTE]
+                    [--cdl-file CDL_FILE]
                     input_file
 
 An NES (6502) disassembler.
 
 positional arguments:
-  input_file            The PRG ROM file to read. Size: 256 bytes to 4 MiB
-                        (4,194,304 bytes) and a multiple of 256 bytes. (.nes
-                        files are not currently supported.)
+  input_file            The PRG ROM file to read. Maximum size: 32 KiB. (.nes
+                        files are not supported.)
 
 optional arguments:
   -h, --help            show this help message and exit
-  --bank-size {256,512,1024,2048,4096,8192,16384,32768}
-                        Size of PRG ROM banks in bytes. The input file size
-                        must be a multiple of this or equal to this. Default:
-                        the greatest common divisor of file size and 32768.
-  --origin ORIGIN       The NES CPU address each PRG ROM bank starts from.
-                        Minimum: 32768. Default & maximum: 65536 minus --bank-
-                        size. Must be a multiple of 256.
   --no-absolute-zp      Assume the game never accesses zero page using
                         absolute addressing if the instruction also supports
                         zero page addressing.
@@ -76,12 +69,9 @@ optional arguments:
                         JMP/JSR/branch). Same syntax as in --no-access.
                         Examples: 0000-1fff = RAM, 2000-401f = memory-mapped
                         registers.
-  --cdl-file CDL_FILE   FCEUX code/data log file (.cdl) to use.
+  --cdl-file CDL_FILE   The FCEUX code/data log file (.cdl) to read.
 ```
 
-## To do (in order of descending priority)
-* Better support for CDL files.
-* Search for PRG ROM labels with bankswitched games too.
-* Support reading iNES ROM files (`.nes`).
-* Support other assembler syntaxes.
+## To do
+* Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)
 

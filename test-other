@@ -27,29 +27,10 @@ asm6f test-out/excitebike.asm test-out/excitebike-reassembled.bin
 diff test-in/excitebike.prg test-out/excitebike-reassembled.bin
 echo
 
-echo "=== Lunar Pool ==="
-# 01 = ORA (indirect,x), 41 = EOR (indirect,x), c1 = CMP (indirect,x), e1 = SBC (indirect,x)
-python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00,01,41,c1,e1 --no-access 0800-1fff,2008-3fff,4020-bfff --no-execute 2000-401f --no-write 8000-ffff test-in/lunarpool.prg > test-out/lunarpool.asm
-asm6f test-out/lunarpool.asm test-out/lunarpool-reassembled.bin
-diff test-in/lunarpool.prg test-out/lunarpool-reassembled.bin
-echo
-
 echo "=== SMB (use CDL file) ==="
 # 00 = BRK, 01/21/41/61/81/a1/c1/e1 = (indirect,x), 11/31/51/71/d1/f1 = (indirect),y excluding LDA/STA
 python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00,01,11,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 --no-access 0800-1fff,2008-3fff,4020-7fff --no-execute 2000-401f --no-write 8000-ffff --cdl-file ~/nes/cdl/smb1-w.cdl test-in/smb1.prg > test-out/smb1.asm
 asm6f test-out/smb1.asm test-out/smb1-reassembled.bin
 diff test-in/smb1.prg test-out/smb1-reassembled.bin
-echo
-
-echo "=== Blaster Master ==="
-python3 nesdisasm.py --bank-size 16384 --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00 --no-access 0800-1fff,2008-3fff,4020-7fff --no-execute 2000-401f test-in/blastermaster.prg > test-out/blastermaster.asm
-asm6f test-out/blastermaster.asm test-out/blastermaster-reassembled.bin
-diff test-in/blastermaster.prg test-out/blastermaster-reassembled.bin
-echo
-
-echo "=== SMB 3 ==="
-python3 nesdisasm.py --bank-size 8192 --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00 --no-access 0800-1fff,2008-3fff,4020-7fff --no-execute 2000-401f test-in/smb3.prg > test-out/smb3.asm
-asm6f test-out/smb3.asm test-out/smb3-reassembled.bin
-diff test-in/smb3.prg test-out/smb3-reassembled.bin
 echo
 
