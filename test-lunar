@@ -1,10 +1,17 @@
 clear
 rm -f test-out/*.asm test-out/*.bin
 
-echo "=== Lunar Pool (use CDL file) ==="
+echo "=== Lunar Pool (use CDL file; disassemble unaccessed bytes) ==="
 # 01 = ORA (indirect,x), 41 = EOR (indirect,x), c1 = CMP (indirect,x), e1 = SBC (indirect,x)
 python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00,01,41,c1,e1 --no-access 0800-1fff,2008-3fff,4020-bfff --no-execute 2000-401f --no-write 8000-ffff --cdl-file ~/nes/cdl/lunarpool-u.cdl test-in/lunarpool.prg > test-out/lunarpool.asm
 asm6f test-out/lunarpool.asm test-out/lunarpool-reassembled.bin
 diff test-in/lunarpool.prg test-out/lunarpool-reassembled.bin
+echo
+
+echo "=== Lunar Pool (use CDL file; don't disassemble unaccessed bytes) ==="
+# 01 = ORA (indirect,x), 41 = EOR (indirect,x), c1 = CMP (indirect,x), e1 = SBC (indirect,x)
+python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00,01,41,c1,e1 --no-access 0800-1fff,2008-3fff,4020-bfff --no-execute 2000-401f --no-write 8000-ffff --cdl-file ~/nes/cdl/lunarpool-u.cdl --unaccessed-as-data test-in/lunarpool.prg > test-out/lunarpool-nounacc.asm
+asm6f test-out/lunarpool-nounacc.asm test-out/lunarpool-nounacc-reassembled.bin
+diff test-in/lunarpool.prg test-out/lunarpool-nounacc-reassembled.bin
 echo
 

@@ -286,7 +286,6 @@ def parse_arguments():
         "--no-write", type=str, default="",
         help="Assume the game never writes these addresses (via DEC/INC/ASL/LSR/ROL/ROR/STA/STX/"
         "STY). Same syntax as in --no-access. Example: 8000-ffff = PRG ROM."
-
     )
     parser.add_argument(
         "--no-execute", type=str, default="",
@@ -296,6 +295,10 @@ def parse_arguments():
     parser.add_argument(
         "--cdl-file", type=str, default="",
         help="The FCEUX code/data log file (.cdl) to read."
+    )
+    parser.add_argument(
+        "--unaccessed-as-data", action="store_true",
+        help="If a CDL file is used, disassemble all unaccessed bytes as data."
     )
     parser.add_argument(
         "input_file",
@@ -309,6 +312,9 @@ def parse_arguments():
 
     if args.cdl_file and not os.path.isfile(args.cdl_file):
         sys.exit("CDL file not found.")
+
+    if args.unaccessed_as_data and not args.cdl_file:
+        sys.exit("--unaccessed-as-data cannot be used without a CDL file.")
 
     return args
 
@@ -423,12 +429,21 @@ def get_instruction_address_ranges(handle, CDLData, args):
         if PRGSize - PRGAddr < 1 + operandSize:
             return False
 
-        # any byte of the instruction flagged as data only?
-        if any(
-            any(addr in rng for rng in CDLDataOnlyRanges)
-            for addr in range(PRGAddr, PRGAddr + 1 + operandSize)
-        ):
-            return False
+        # any byte of the instruction forbidden according to CDL file and --unaccessed-as-data?
+        if args.unaccessed_as_data:
+            # must be code/data or code only (not data only or unaccessed)
+            if not all(
+                any(addr in rng for rng in CDLCodeRanges)
+                for addr in range(PRGAddr, PRGAddr + 1 + operandSize)
+            ):
+                return False
+        else:
+            # must be code/data, code or unaccessed (not data only)
+            if any(
+                any(addr in rng for rng in CDLDataRanges)
+                for addr in range(PRGAddr, PRGAddr + 1 + operandSize)
+            ):
+                return False
 
         # if operand is not an address, accept it
         if addrMode in (AM_IMP, AM_AC, AM_IMM):
@@ -476,7 +491,8 @@ def get_instruction_address_ranges(handle, CDLData, args):
 
         return True
 
-    CDLDataOnlyRanges = set(rng for rng in CDLData if CDLData[rng] == CDL_DATA)
+    CDLCodeRanges = set(rng for rng in CDLData if CDLData[rng] == CDL_CODE)
+    CDLDataRanges = set(rng for rng in CDLData if CDLData[rng] == CDL_DATA)
     noOpcodes = set(parse_opcode_list(args.no_opcodes))
     noAccess = set(parse_address_ranges(args.no_access))
     noWrite = set(parse_address_ranges(args.no_write))

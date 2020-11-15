@@ -29,7 +29,7 @@ An NES (6502) disassembler. The output is compatible with [asm6f](https://github
 usage: nesdisasm.py [-h] [--no-absolute-zp] [--no-absolute-indexed-zp]
                     [--no-opcodes NO_OPCODES] [--no-access NO_ACCESS]
                     [--no-write NO_WRITE] [--no-execute NO_EXECUTE]
-                    [--cdl-file CDL_FILE]
+                    [--cdl-file CDL_FILE] [--unaccessed-as-data]
                     input_file
 
 An NES (6502) disassembler.
@@ -70,6 +70,8 @@ optional arguments:
                         Examples: 0000-1fff = RAM, 2000-401f = memory-mapped
                         registers.
   --cdl-file CDL_FILE   The FCEUX code/data log file (.cdl) to read.
+  --unaccessed-as-data  If a CDL file is used, disassemble all unaccessed
+                        bytes as data.
 ```
 
 ## To do
