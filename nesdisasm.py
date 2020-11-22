@@ -356,19 +356,23 @@ def read_cdl_file(handle, PRGSize):
         yield (range(chunkStart, PRGSize), chunkType)
 
 def decode_16bit_address(bytes_):
-    """bytes_: 2 bytes, return: 16-bit unsigned int"""
+    """bytes_: 2 bytes (little endian), return: 16-bit unsigned int"""
 
+    assert len(bytes_) == 2
     return bytes_[0] + bytes_[1] * 0x100
 
 def decode_relative_address(base, offset):
-    """base: 16-bit unsigned int, offset: 8-bit signed int,
-    return: int (may over-/underflow 16-bit unsigned int)"""
+    """base: 16-bit int, offset: 8-bit int, return: int (may underflow/overflow 16 bits)"""
 
-    return base + 2 - (offset & 0x80) + (offset & 0x7f)
+    assert 0 <= base <= 0xffff
+    assert 0 <= offset <= 0xff
+    offset = -(offset & 0x80) + (offset & 0x7f)  # -128...+127
+    return base + 2 + offset
 
 def get_origin(PRGSize):
     """Get origin CPU address for PRG ROM."""
 
+    assert PRGSize <= 32 * 1024
     return 64 * 1024 - PRGSize
 
 # -------------------------------------------------------------------------------------------------
@@ -529,6 +533,21 @@ def get_instruction_address_ranges(handle, CDLData, args):
         # end last code chunk
         yield range(codeStart, PRGSize)
 
+def get_instruction_addresses(handle, instrAddrRanges):
+    """Generate PRG addresses of instructions.
+    instrAddrRanges: set of PRG address ranges"""
+
+    for rng in sorted(instrAddrRanges, key=lambda r: r.start):
+        handle.seek(rng.start)
+        chunk = handle.read(len(rng))
+        pos = 0  # within range
+        while pos < len(rng):
+            yield rng.start + pos
+            opcode = chunk[pos]
+            addrMode = OPCODES[opcode][1]
+            operandSize = ADDRESSING_MODES[addrMode][0]
+            pos += 1 + operandSize
+
 def get_label_stats(handle, instrAddrRanges, args):
     """Get addresses and statistics of labels from a PRG file.
     handle: file handle, instrAddrRanges: set of PRG address ranges, args: from argparse,
@@ -556,42 +575,36 @@ def get_label_stats(handle, instrAddrRanges, args):
 
     pos = 0  # position in PRG ROM
 
-    # quite similar to main loops elsewhere, especially in disassemble()
-    while pos < PRGSize:
-        if any(pos in rng for rng in instrAddrRanges):
-            # instruction
-            instrAddresses.add(pos)
+    for pos in get_instruction_addresses(handle, instrAddrRanges):
+        instrAddresses.add(pos)
 
-            opcode = PRGData[pos]
-            (mnemonic, addrMode) = OPCODES[opcode]
-            operandSize = ADDRESSING_MODES[addrMode][0]
+        opcode = PRGData[pos]
+        (mnemonic, addrMode) = OPCODES[opcode]
 
-            if addrMode not in (AM_IMP, AM_AC, AM_IMM):
-                # operand is an address
-                # decode operand
-                if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
-                    addr = PRGData[pos+1]
-                    if addrMode == AM_R:
-                        addr = decode_relative_address(origin + pos, addr)
-                else:
-                    addr = decode_16bit_address(PRGData[pos+1:pos+3])
+        if addrMode not in (AM_IMP, AM_AC, AM_IMM):
+            # operand is an address
+            # decode operand
+            if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
+                addr = PRGData[pos+1]
+                if addrMode == AM_R:
+                    addr = decode_relative_address(origin + pos, addr)
+            else:
+                addr = decode_16bit_address(PRGData[pos+1:pos+3])
 
-                # remember access method, first reference and last reference
-                accessMethod = get_access_method(mnemonic, addrMode)
-                referrer = origin + pos
-                if addr in labelStats:
-                    labelStats[addr][0].add(accessMethod)
-                    labelStats[addr][1] = min(labelStats[addr][1], referrer)
-                    labelStats[addr][2] = max(labelStats[addr][2], referrer)
-                else:
-                    labelStats[addr] = [set((accessMethod,)), referrer, referrer]
+            # remember access method, first reference and last reference
+            accessMethod = get_access_method(mnemonic, addrMode)
+            referrer = origin + pos
+            if addr in labelStats:
+                labelStats[addr][0].add(accessMethod)
+                labelStats[addr][1] = min(labelStats[addr][1], referrer)
+                labelStats[addr][2] = max(labelStats[addr][2], referrer)
+            else:
+                labelStats[addr] = [set((accessMethod,)), referrer, referrer]
 
-            pos += 1 + operandSize
-        else:
-            # data
-            pos += 1
-
-    # only keep labels that refer to outside of PRG ROM, to instructions or to data
+    # only keep labels that refer to:
+    # - outside of PRG ROM
+    # - first bytes of instructions
+    # - data
     return dict(
         (addr, labelStats[addr]) for addr in labelStats
         if addr <= 0x7fff or addr >= origin and (
@@ -828,15 +841,16 @@ def disassemble(handle, CDLData, args):
     print(INDENT_WIDTH * " " + "org " + format_literal(origin, 16))
     print()
 
+    instrAddresses = set(get_instruction_addresses(handle, instrAddrRanges))
+
     handle.seek(0)
     PRGData = handle.read()
 
     pos = 0  # position in PRG data
     dataStart = None  # where current string of data bytes started
 
-    # quite similar to main loops elsewhere, especially in get_label_stats()
     while pos < PRGSize:
-        if any(pos in rng for rng in instrAddrRanges):
+        if pos in instrAddresses:
             # instruction
 
             # print previous data bytes, if any
