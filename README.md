@@ -14,7 +14,10 @@ An NES (6502) disassembler. The output is compatible with [asm6f](https://github
     * `code1`, `code2`, &hellip;: other code (never accessed with JSR, but accessed at least once with JMP absolute or a branch instruction)
     * `+`, `-`, &hellip;: anonymous code labels (only accessed with nearby JMP absolute or branch instructions, with no other labels in between)
     * `data1`, `data2`, &hellip;: data (never accessed with JSR, JMP absolute or a branch instruction)
-* Limited support for FCEUX code/data log files (`.cdl`): if a PRG ROM byte has been flagged as data and not code in the CDL file (CDL byte `0bxxxxxx10`), that PRG ROM byte will always be disassembled as data.
+* Limited support for FCEUX code/data log files (`.cdl`):
+  * bytes flagged as code or both code and data (CDL byte `0bxxxxxxx1`): attempt to disassemble as code
+  * bytes flagged as data only (CDL byte `0bxxxxxx10`): always disassemble as data
+  * bytes flagged as unaccessed (CDL byte `0b00000000`): attempt to disassemble as code, or if --unaccessed-as-data is used, always disassemble as data; add "(unaccessed)" to comment (TODO: implement this for data lines too)
 
 ## Limitations
 * iNES ROM files (`.nes`) are not supported. (To convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).)
