@@ -17,6 +17,7 @@ echo
 
 echo "=== Game Genie ==="
 python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00 --no-access 0800-1fff,2008-3fff,4020-7fff --no-execute 2000-401f test-in/gamegenie.prg > test-out/gamegenie.asm
+cp test-out/gamegenie.asm sample-output.txt
 asm6f test-out/gamegenie.asm test-out/gamegenie-reassembled.bin
 diff test-in/gamegenie.prg test-out/gamegenie-reassembled.bin
 echo

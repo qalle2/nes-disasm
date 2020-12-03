@@ -470,6 +470,9 @@ def disassemble(handle, CDLData, args):
     return: None"""
 
     def print_CDL_stats():
+        if not CDLData:
+            print("; No CDL file was used.")
+            return
         instrByteCnt = sum(len(rng) for rng in CDLData if CDLData[rng] == CDL_CODE)
         dataByteCnt = sum(len(rng) for rng in CDLData if CDLData[rng] == CDL_DATA)
         unaccByteCnt = PRGSize - instrByteCnt - dataByteCnt
@@ -495,34 +498,41 @@ def disassemble(handle, CDLData, args):
                 return f"%{value:08b}"
         assert False
 
-    def generate_data_lines(data, addr):
+    def generate_data_lines(data, origin, PRGAddr):
         """Format lines with data bytes.
-        data: bytes, addr: int, labels: dict, yield: str"""
+        data: bytes, origin: int, PRGAddr: int, labels: dict, yield: str"""
 
-        def format_data_line(label, bytes_, addr):
+        def format_data_line(label, bytes_, origin, PRGAddr):
+            indentWidth = max(INDENT_WIDTH, len(label) + 1)
+            hexBytes = " ".join(f"{byte:02x}" for byte in bytes_)
+
+            # flag as unaccessed?
+            flagUnaccessed = CDLData and not any(PRGAddr in rng for rng in CDLDataRanges)
+
             return (
-                format(label, f"{max(INDENT_WIDTH, len(label) + 1)}s")
-                + format("hex " + " ".join(f"{byte:02x}" for byte in bytes_), "29s")
-                + f"; {addr:04x}"
+                format(label, f"{indentWidth}s")
+                + format("hex " + hexBytes, "29s")
+                + f"; {origin+PRGAddr:04x}"
+                + (11 * " " + "(unaccessed)" if flagUnaccessed else "")
             )
 
         startOffset = 0  # current block
         prevLabel = ""
 
         for (offset, byte) in enumerate(data):
-            label = labels.get(addr + offset, "")
+            label = labels.get(origin + PRGAddr + offset, "")
             if label or offset - startOffset == 8:
                 # a new block starts; print old one, if any
                 if offset > startOffset:
                     yield format_data_line(
-                        prevLabel, data[startOffset:offset], addr + startOffset
+                        prevLabel, data[startOffset:offset], origin, PRGAddr + startOffset
                     )
                     startOffset = offset
                 prevLabel = label
 
         # print last block, if any
         if len(data) > startOffset:
-            yield format_data_line(prevLabel, data[startOffset:], addr + startOffset)
+            yield format_data_line(prevLabel, data[startOffset:], origin, PRGAddr + startOffset)
 
     def format_operand_value(instrBytes, PRGAddr):
         """instrBytes: 1...3 bytes, return: str"""
@@ -567,7 +577,6 @@ def disassemble(handle, CDLData, args):
     print(f"; Data bytes: {PRGSize - instrByteCnt}")
     del instrByteCnt
     print(f"; Labels: {len(labels)}")
-    print(";")
     print_CDL_stats()
     print()
 
@@ -604,21 +613,24 @@ def disassemble(handle, CDLData, args):
 
     instrAddresses = set(get_instruction_addresses(handle, instrAddrRanges))
     CDLCodeRanges = set(rng for rng in CDLData if CDLData[rng] == CDL_CODE)
+    CDLDataRanges = set(rng for rng in CDLData if CDLData[rng] == CDL_DATA)
 
     handle.seek(0)
     PRGData = handle.read()
 
     pos = 0  # position in PRG data
     dataStart = None  # where current string of data bytes started
+    prevBlockWasData = False
 
     while pos < PRGSize:
         if pos in instrAddresses:
             # instruction
 
-            # print previous data bytes, if any
             if dataStart is not None:
-                print()
-                for line in generate_data_lines(PRGData[dataStart:pos], origin + dataStart):
+                # print previous data block
+                if not prevBlockWasData:
+                    print()
+                for line in generate_data_lines(PRGData[dataStart:pos], origin, dataStart):
                     print(line)
                 print()
                 dataStart = None
@@ -647,19 +659,29 @@ def disassemble(handle, CDLData, args):
             )
 
             pos += 1 + operandSize
+            prevBlockWasData = False
         else:
             # data
 
-            # start a new data block if not already inside one
-            if dataStart is None:
+            accessed = any(pos in rng for rng in CDLDataRanges)
+
+            if dataStart is None or accessed != prevDataBlockAccessed:
+                if dataStart is not None:
+                    # print previous data block
+                    if not prevBlockWasData:
+                        print()
+                    for line in generate_data_lines(PRGData[dataStart:pos], origin, dataStart):
+                        print(line)
+                    prevBlockWasData = True
+                # start new data block
                 dataStart = pos
+                prevDataBlockAccessed = accessed
 
             pos += 1
 
-    # print last data bytes, if any
     if dataStart is not None:
-        print()
-        for line in generate_data_lines(PRGData[dataStart:], origin + dataStart):
+        # print last data block
+        for line in generate_data_lines(PRGData[dataStart:], origin, dataStart):
             print(line)
 
     print()
