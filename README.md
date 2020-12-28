@@ -78,7 +78,7 @@ optional arguments:
 ```
 
 ## Sample output
-[Game Genie ROM](sample-output.asm) (see [this script](test-other) for command line arguments used)
+[Game Genie ROM](sample-output.txt) (see [this script](test-other) for command line arguments used)
 
 ## To do
 * Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)
