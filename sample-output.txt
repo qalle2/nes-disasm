@@ -5,7 +5,7 @@
 ; Labels: 424
 ; No CDL file was used.
 
-; === RAM labels ($0...$8191) ===
+; === RAM labels ($0000...$1fff) ===
 
 array1          equ $00
 ram1            equ $01

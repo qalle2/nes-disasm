@@ -583,7 +583,7 @@ def disassemble(handle, CDLData, args):
     print_CDL_stats()
     print()
 
-    print(f"; === RAM labels (${NES_RAM.start}...${NES_RAM.stop-1}) ===")
+    print(f"; === RAM labels (${NES_RAM.start:04x}...${NES_RAM.stop-1:04x}) ===")
     print()
     # zeroPage
     for addr in sorted(l for l in labels if l <= 0xff):
