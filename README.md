@@ -1,5 +1,5 @@
 # nes-disasm
-An NES (6502) disassembler. The output is compatible with [asm6f](https://github.com/freem/asm6f). Work in progress.
+An NES (6502) disassembler. The output is compatible with [ASM6](https://github.com/qalle2/asm6).
 
 ## Features
 * Automatically assigns labels to addresses:
@@ -9,7 +9,7 @@ An NES (6502) disassembler. The output is compatible with [asm6f](https://github
   * `$2000`&hellip;`$7fff`:
     * `ppu_ctrl`, `ppu_mask`, &hellip;: NES memory-mapped registers
     * `misc1`, `misc2`, &hellip;: other addresses
-  * PRG ROM (`$8000`&hellip;`$ffff`; labels not supported if the game uses PRG ROM bankswitching):
+  * PRG ROM (`$8000`&hellip;`$ffff`):
     * `sub1`, `sub2`, &hellip;: subroutines (accessed at least once using the JSR instruction)
     * `code1`, `code2`, &hellip;: other code (never accessed with JSR, but accessed at least once with JMP absolute or a branch instruction)
     * `+`, `-`, &hellip;: anonymous code labels (only accessed with nearby JMP absolute or branch instructions, with no other labels in between)
@@ -24,7 +24,7 @@ An NES (6502) disassembler. The output is compatible with [asm6f](https://github
 * PRG ROM files larger than 32 KiB (i.e., bankswitched games) are not supported.
 
 ## Notes
-* The Linux scripts `test-*` are intended for my personal use. Do not run it without reading it.
+* The Linux scripts `test-*` are intended for my personal use. Do not run them without reading them.
 * The origin address is 64 KiB minus the PRG ROM file size.
 
 ## Command line arguments
@@ -60,25 +60,25 @@ optional arguments:
                         Assume the game never accesses (reads/writes/executes)
                         these addresses. Zero or more ranges separated by
                         commas. Each range consists of two hexadecimal
-                        addresses (0000 to ffff) separated by a hyphen.
+                        addresses (0000...ffff) separated by a hyphen.
                         Examples: 0800-1fff = mirrors of RAM, 2008-3fff =
                         mirrors of PPU registers, 4020-5fff = beginning of
                         cartridge space, 6000-7fff = PRG RAM.
   --no-write NO_WRITE   Assume the game never writes these addresses (via
-                        DEC/INC/ASL/LSR/ROL/ROR/STA/STX/STY). Same syntax as
+                        ASL/DEC/INC/LSR/ROL/ROR/STA/STX/STY). Same syntax as
                         in --no-access. Example: 8000-ffff = PRG ROM.
   --no-execute NO_EXECUTE
                         Assume the game never executes these addresses (via
-                        JMP/JSR/branch). Same syntax as in --no-access.
-                        Examples: 0000-1fff = RAM, 2000-401f = memory-mapped
-                        registers.
+                        BCC/BCS/BEQ/BMI/BNE/BPL/BVC/BVS/JMP/JSR). Same syntax
+                        as in --no-access. Examples: 0000-1fff = RAM,
+                        2000-401f = memory-mapped registers.
   --cdl-file CDL_FILE   The FCEUX code/data log file (.cdl) to read.
   --unaccessed-as-data  If a CDL file is used, disassemble all unaccessed
                         bytes as data.
 ```
 
 ## Sample output
-[Game Genie ROM](sample-output.txt) (see [this script](test-other) for command line arguments used)
+[Game Genie ROM](sample-output.asm) (see [this script](test-other) for command line arguments used)
 
 ## To do
 * Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)

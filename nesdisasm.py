@@ -31,19 +31,24 @@ def parse_arguments():
     parser.add_argument(
         "--no-access", type=str, default="",
         help="Assume the game never accesses (reads/writes/executes) these addresses. Zero or more "
-        "ranges separated by commas. Each range consists of two hexadecimal addresses (0000 to "
+        "ranges separated by commas. Each range consists of two hexadecimal addresses (0000..."
         "ffff) separated by a hyphen. Examples: 0800-1fff = mirrors of RAM, 2008-3fff = mirrors "
         "of PPU registers, 4020-5fff = beginning of cartridge space, 6000-7fff = PRG RAM."
     )
     parser.add_argument(
         "--no-write", type=str, default="",
-        help="Assume the game never writes these addresses (via DEC/INC/ASL/LSR/ROL/ROR/STA/STX/"
-        "STY). Same syntax as in --no-access. Example: 8000-ffff = PRG ROM."
+        help="Assume the game never writes these addresses (via "
+        + "/".join(instr.upper() for instr in sorted(WRITE_INSTRUCTIONS))
+        + "). Same syntax as in --no-access. "
+        f"Example: {NES_PRG_ROM.start:04x}-{NES_PRG_ROM.stop-1:04x} = PRG ROM."
     )
     parser.add_argument(
         "--no-execute", type=str, default="",
-        help="Assume the game never executes these addresses (via JMP/JSR/branch). Same syntax as "
-        "in --no-access. Examples: 0000-1fff = RAM, 2000-401f = memory-mapped registers."
+        help="Assume the game never executes these addresses (via "
+        + "/".join(instr.upper() for instr in sorted(JUMP_INSTRUCTIONS))
+        + "). Same syntax as in --no-access. "
+        f"Examples: {NES_RAM.start:04x}-{NES_RAM.stop-1:04x} = RAM, "
+        "2000-401f = memory-mapped registers."
     )
     parser.add_argument(
         "--cdl-file", type=str, default="",
@@ -125,8 +130,8 @@ def decode_relative_address(base, offset):
 def get_origin(PRGSize):
     """Get origin CPU address for PRG ROM."""
 
-    assert PRGSize <= 32 * 1024
-    return 64 * 1024 - PRGSize
+    assert PRGSize <= len(NES_PRG_ROM)
+    return NES_PRG_ROM.stop - PRGSize
 
 # -------------------------------------------------------------------------------------------------
 
@@ -144,7 +149,7 @@ def get_instruction_address_ranges(handle, CDLData, args):
         for n in arg.split(","):
             try:
                 n = int(n, 16)
-                if not 0 <= n <= 0xff:
+                if n not in OPCODES:
                     raise ValueError
             except ValueError:
                 sys.exit("Invalid opcode.")
@@ -211,11 +216,11 @@ def get_instruction_address_ranges(handle, CDLData, args):
                 return False
 
         # if operand is not an address, accept it
-        if addrMode in (AM_IMP, AM_AC, AM_IMM):
+        if addrMode in NON_ADDRESS_ADDRESSING_MODES:
             return True
 
         # decode address
-        if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
+        if addrMode in ZERO_PAGE_ADDRESSING_MODES:
             addr = instrBytes[1]
             if addrMode == AM_R:
                 addr = decode_relative_address(PRGAddr, addr)
@@ -244,13 +249,12 @@ def get_instruction_address_ranges(handle, CDLData, args):
             return False
 
         # writes an excluded address?
-        if mnemonic in ("asl", "dec", "inc", "lsr", "rol", "ror", "sta", "stx", "sty") \
-        and addrMode in (AM_Z, AM_ZX, AM_ZY, AM_AB, AM_ABX, AM_ABY) \
+        if mnemonic in WRITE_INSTRUCTIONS and addrMode in WRITE_ADDRESSING_MODES \
         and any(addr in rng for rng in noWrite):
             return False
 
         # executes an excluded address?
-        if (mnemonic in ("jmp", "jsr") and addrMode == AM_AB or addrMode == AM_R) \
+        if mnemonic in JUMP_INSTRUCTIONS and addrMode in JUMP_ADDRESSING_MODES \
         and any(addr in rng for rng in noExecute):
             return False
 
@@ -317,12 +321,10 @@ def get_label_stats(handle, instrAddrRanges, args):
 
     def get_access_method(mnemonic, addrMode):
         # see enumeration
-        if addrMode in (AM_ZX, AM_ZY, AM_ABX, AM_ABY):
+        if addrMode in DIRECT_INDEXED_ADDRESSING_MODES:
             return ACME_ARRAY
-        if mnemonic == "jsr":
-            return ACME_SUB
-        if addrMode == AM_R or mnemonic == "jmp" and addrMode == AM_AB:
-            return ACME_CODE
+        if mnemonic in JUMP_INSTRUCTIONS and addrMode in JUMP_ADDRESSING_MODES:
+            return ACME_SUB if mnemonic == "jsr" else ACME_CODE
         return ACME_DATA
 
     instrAddresses = set()  # PRG addresses of instructions
@@ -342,10 +344,10 @@ def get_label_stats(handle, instrAddrRanges, args):
         opcode = PRGData[pos]
         (mnemonic, addrMode) = OPCODES[opcode]
 
-        if addrMode not in (AM_IMP, AM_AC, AM_IMM):
+        if addrMode not in NON_ADDRESS_ADDRESSING_MODES:
             # operand is an address
             # decode operand
-            if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
+            if addrMode in ZERO_PAGE_ADDRESSING_MODES:
                 addr = PRGData[pos+1]
                 if addrMode == AM_R:
                     addr = decode_relative_address(origin + pos, addr)
@@ -368,7 +370,7 @@ def get_label_stats(handle, instrAddrRanges, args):
     # - data
     return dict(
         (addr, labelStats[addr]) for addr in labelStats
-        if addr <= 0x7fff or addr >= origin and (
+        if addr not in NES_PRG_ROM or addr >= origin and (
             addr - origin in instrAddresses
             or not any(addr - origin in rng for rng in instrAddrRanges)
         )
@@ -381,7 +383,7 @@ def get_label_names(handle, instrAddrRanges, args):
     labelStats = get_label_stats(handle, instrAddrRanges, args)
 
     # RAM
-    RAMLabels = set(addr for addr in labelStats if addr <= 0x1fff)
+    RAMLabels = set(addr for addr in labelStats if addr in NES_RAM)
     # accessed at least once as an array
     addresses = sorted(addr for addr in RAMLabels if ACME_ARRAY in labelStats[addr][0])
     yield from ((addr, f"array{i+1}") for (i, addr) in enumerate(addresses))
@@ -394,9 +396,9 @@ def get_label_names(handle, instrAddrRanges, args):
     # hardware registers
     addresses = sorted(set(labelStats) & set(HARDWARE_REGISTERS))
     yield from ((addr, HARDWARE_REGISTERS[addr]) for addr in addresses)
-    # 0x2000...0x7fff excluding HARDWARE_REGISTERS
+    # NES_MISC_SPACE excluding hardware registers
     addresses = sorted(
-        addr for addr in set(labelStats) - set(HARDWARE_REGISTERS) if 0x2000 <= addr <= 0x7fff
+        addr for addr in set(labelStats) - set(HARDWARE_REGISTERS) if addr in NES_MISC_SPACE
     )
     yield from ((addr, f"misc{i+1}") for (i, addr) in enumerate(addresses))
 
@@ -404,7 +406,7 @@ def get_label_names(handle, instrAddrRanges, args):
     # addresses only referred to by branches or direct jumps
     prgCodeLabels = set(
         addr for addr in labelStats
-        if addr >= 0x8000 and labelStats[addr][0] == set((ACME_CODE,))
+        if addr in NES_PRG_ROM and labelStats[addr][0] == set((ACME_CODE,))
     )
     # look for "+" labels, then "-" labels, then "+" labels again
     anonLabelsForwards = set()
@@ -440,7 +442,7 @@ def get_label_names(handle, instrAddrRanges, args):
     del prgCodeLabels
 
     # named PRG ROM labels
-    namedPRGLabels = set(addr for addr in set(labelStats) if addr >= 0x8000) \
+    namedPRGLabels = set(addr for addr in set(labelStats) if addr in NES_PRG_ROM) \
     - anonLabelsForwards - anonLabelsBackwards
     del anonLabelsForwards, anonLabelsBackwards
     # subs
@@ -481,7 +483,7 @@ def disassemble(handle, CDLData, args):
         print(f"; CDL file - unaccessed bytes: {unaccByteCnt}")
 
     def format_literal(value, bits=8, base=16):
-        """Format an asm6f integer literal.
+        """Format an ASM6 integer literal.
         value: int, bits: 8/16, base: 2/10/16, return: str"""
 
         if bits == 16:
@@ -539,27 +541,28 @@ def disassemble(handle, CDLData, args):
 
         (mnemonic, addrMode) = OPCODES[instrBytes[0]]
 
-        if addrMode in (AM_IMP, AM_AC):
-            # none
-            return ""
-        if addrMode == AM_IMM:
+        if addrMode in NON_ADDRESS_ADDRESSING_MODES:
+            if addrMode != AM_IMM:
+                # none
+                return ""
             # immediate
-            if mnemonic in ("and", "eor", "ora"):
-                return format_literal(instrBytes[1], 8, 2)
-            if mnemonic in ("cpx", "cpy", "ldx", "ldy"):
-                return format_literal(instrBytes[1], 8, 10)
+            if mnemonic in BITMASK_INSTRUCTIONS:
+                return format_literal(instrBytes[1], base=2)
+            if mnemonic in IMMEDIATE_INDEX_REGISTER_INSTRUCTIONS:
+                return format_literal(instrBytes[1], base=10)
             return format_literal(instrBytes[1])
-        if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY):
+        if addrMode in ZERO_PAGE_ADDRESSING_MODES:
             # 8-bit address
             addr = instrBytes[1]
-            return labels.get(addr, format_literal(addr))
-        # relative or 16-bit
-        if addrMode == AM_R:
-            addr = instrBytes[1]
-            addr = decode_relative_address(PRGAddr, addr)
-        else:
-            addr = decode_16bit_address(instrBytes[1:3])
-        return labels.get(addr, format_literal(addr, 16))
+            if addrMode == AM_R:
+                addr = decode_relative_address(PRGAddr, addr)
+                bits = 16
+            else:
+                bits = 8
+            return labels.get(addr, format_literal(addr, bits=bits))
+        # 16-bit
+        addr = decode_16bit_address(instrBytes[1:3])
+        return labels.get(addr, format_literal(addr, bits=16))
 
     # ranges of PRG addresses
     instrAddrRanges = set(get_instruction_address_ranges(handle, CDLData, args))
@@ -580,7 +583,7 @@ def disassemble(handle, CDLData, args):
     print_CDL_stats()
     print()
 
-    print("; === RAM labels ($0000...$01fff) ===")
+    print(f"; === RAM labels (${NES_RAM.start}...${NES_RAM.stop-1}) ===")
     print()
     # zeroPage
     for addr in sorted(l for l in labels if l <= 0xff):
@@ -600,9 +603,12 @@ def disassemble(handle, CDLData, args):
         ))
     print()
 
-    print("; === Misc labels ($2000...$7fff excluding NES memory-mapped registers) ===")
+    print(
+        f"; === Misc labels (${NES_MISC_SPACE.start:04x}...${NES_MISC_SPACE.stop-1:04x} "
+        "excluding NES memory-mapped registers) ==="
+    )
     print()
-    for addr in sorted(l for l in set(labels) - set(HARDWARE_REGISTERS) if 0x2000 <= l <= 0x7fff):
+    for addr in sorted(l for l in set(labels) - set(HARDWARE_REGISTERS) if l in NES_MISC_SPACE):
         print(f"{labels[addr]:15s} equ " + format_literal(addr, 16))
     print()
 

@@ -19,19 +19,19 @@ INDENT_WIDTH = 8
 
 # addressing mode: (operand size, operand format)
 ADDRESSING_MODES = {
-    AM_IMP: (0, "{}"),
-    AM_AC:  (0, "a{}"),
-    AM_IMM: (1, "#{}"),
-    AM_Z:   (1, "{}"),
-    AM_ZX:  (1, "{},x"),
-    AM_ZY:  (1, "{},y"),
-    AM_IX:  (1, "({},x)"),
-    AM_IY:  (1, "({}),y"),
-    AM_R:   (1, "{}"),
-    AM_AB:  (2, "{}"),
-    AM_ABX: (2, "{},x"),
-    AM_ABY: (2, "{},y"),
-    AM_I:   (2, "({})"),
+    AM_IMP: (0, "{}"),      # implied
+    AM_AC:  (0, "a{}"),     # accumulator
+    AM_IMM: (1, "#{}"),     # immediate
+    AM_Z:   (1, "{}"),      # zeroPage
+    AM_ZX:  (1, "{},x"),    # zeroPage,x
+    AM_ZY:  (1, "{},y"),    # zeroPage,y
+    AM_IX:  (1, "({},x)"),  # (indirect,x)
+    AM_IY:  (1, "({}),y"),  # (indirect),y
+    AM_R:   (1, "{}"),      # program counter relative
+    AM_AB:  (2, "{}"),      # absolute
+    AM_ABX: (2, "{},x"),    # absolute,x
+    AM_ABY: (2, "{},y"),    # absolute,y
+    AM_I:   (2, "({})"),    # (indirect)
 }
 
 # opcode: (mnemonic, addressing mode)
@@ -245,4 +245,25 @@ HARDWARE_REGISTERS = {
     ACME_CODE,   # other code: branch / JMP absolute
     ACME_DATA,   # data: none of the above
 ) = range(4)
+
+# sets of addressing modes
+NON_ADDRESS_ADDRESSING_MODES    = set((AM_IMP, AM_AC, AM_IMM))
+ZERO_PAGE_ADDRESSING_MODES      = set((AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R))
+DIRECT_INDEXED_ADDRESSING_MODES = set((AM_ZX, AM_ZY, AM_ABX, AM_ABY))
+
+BITMASK_INSTRUCTIONS                  = set(("and", "ora", "eor"))
+IMMEDIATE_INDEX_REGISTER_INSTRUCTIONS = set(("ldx", "ldy", "cpx", "cpy"))
+
+# instructions and addressing modes that can write to memory
+WRITE_INSTRUCTIONS = set(("sta", "stx", "sty", "dec", "inc", "asl", "lsr", "rol", "ror"))
+WRITE_ADDRESSING_MODES = set((AM_Z, AM_ZX, AM_ZY, AM_AB, AM_ABX, AM_ABY))
+
+# instructions and addressing modes that can jump to an address
+JUMP_INSTRUCTIONS = set(("jmp", "jsr", "bne", "beq", "bpl", "bmi", "bcc", "bcs", "bvc", "bvs"))
+JUMP_ADDRESSING_MODES = set((AM_AB, AM_R))
+
+# NES CPU address space layout
+NES_RAM        = range(0x0000, 0x2000)
+NES_MISC_SPACE = range(0x2000, 0x8000)   # registers, PRG RAM
+NES_PRG_ROM    = range(0x8000, 0x10000)
 
