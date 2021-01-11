@@ -1,38 +1,40 @@
 # nes-disasm
 An NES (6502) disassembler. The output is compatible with [ASM6](https://github.com/qalle2/asm6).
 
-## Features
-* Automatically assigns labels to addresses:
-  * RAM (including mirrors, i.e. `$0000`&hellip;`$1fff`):
-    * `array1`, `array2`, &hellip;: accessed at least once using direct indexed addressing, i.e., zeroPage,x / zeroPage,y / absolute,x / absolute,y
-    * `ram1`, `ram2`, &hellip;: never accessed using direct indexed addressing
-  * `$2000`&hellip;`$7fff`:
-    * `ppu_ctrl`, `ppu_mask`, &hellip;: NES memory-mapped registers
-    * `misc1`, `misc2`, &hellip;: other addresses
-  * PRG ROM (`$8000`&hellip;`$ffff`):
-    * `sub1`, `sub2`, &hellip;: subroutines (accessed at least once using the JSR instruction)
-    * `code1`, `code2`, &hellip;: other code (never accessed with JSR, but accessed at least once with JMP absolute or a branch instruction)
-    * `+`, `-`, &hellip;: anonymous code labels (only accessed with nearby JMP absolute or branch instructions, with no other labels in between)
-    * `data1`, `data2`, &hellip;: data (never accessed with JSR, JMP absolute or a branch instruction)
-* Supports FCEUX code/data log files (`.cdl`):
-  * bytes flagged as code or both code and data (CDL byte `0bxxxxxxx1`): attempt to disassemble as code
-  * bytes flagged as data only (CDL byte `0bxxxxxx10`): disassemble as data
-  * bytes flagged as unaccessed (CDL byte `0b00000000`): attempt to disassemble as code, or if `--unaccessed-as-data` is used, disassemble as data; in either case, add `(unaccessed)` to comment
+## Labels
+The disassembler automatically assigns labels to addresses:
+* RAM (including mirrors, i.e. `$0000`&hellip;`$1fff`):
+  * `array1`, `array2`, &hellip;: accessed at least once using direct indexed addressing, i.e., zeroPage,x / zeroPage,y / absolute,x / absolute,y.
+  * `ram1`, `ram2`, &hellip;: never accessed using direct indexed addressing.
+* `$2000`&hellip;`$7fff`:
+  * `ppu_ctrl`, `ppu_mask`, &hellip;: NES memory-mapped registers.
+  * `misc1`, `misc2`, &hellip;: other addresses.
+* PRG ROM (`$8000`&hellip;`$ffff`):
+  * `sub1`, `sub2`, &hellip;: subroutines (accessed at least once using the JSR instruction).
+  * `code1`, `code2`, &hellip;: other code (never accessed with JSR, but accessed at least once with JMP absolute or a branch instruction).
+  * `+`, `-`: anonymous code labels (only accessed with nearby JMP absolute or branch instructions, with no other labels in between; use `--no-anonymous-labels` to disable).
+  * `data1`, `data2`, &hellip;: data (never accessed with JSR, JMP absolute or a branch instruction).
 
-## Limitations
+## CDL file support
+The disassembler has a limited support for log files created with FCEUX Code/Data Logger (`.cdl`). If a CDL file is used, PRG ROM bytes are treated as follows according to their corresponding CDL bytes:
+  * CDL byte `0bxxxxxxx1` (code or both code and data): attempt to disassemble.
+  * CDL byte `0bxxxxxx10` (data only): output as data (`hex ...`).
+  * CDL byte `0b00000000` (unaccessed): attempt to disassemble, or if `--unaccessed-as-data` is used, output as data; in either case, add `(unaccessed)` to comment.
+
+## Limitations and notes
 * iNES ROM files (`.nes`) are not supported. (To convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).)
 * PRG ROM files larger than 32 KiB (i.e., bankswitched games) are not supported.
-
-## Notes
+* The origin address is always 64 KiB minus the PRG ROM file size.
 * The Linux scripts `test-*` are intended for my personal use. Do not run them without reading them.
-* The origin address is 64 KiB minus the PRG ROM file size.
 
 ## Command line arguments
 ```
 usage: nesdisasm.py [-h] [--no-absolute-zp] [--no-absolute-indexed-zp]
                     [--no-opcodes NO_OPCODES] [--no-access NO_ACCESS]
                     [--no-write NO_WRITE] [--no-execute NO_EXECUTE]
-                    [--cdl-file CDL_FILE] [--unaccessed-as-data]
+                    [--cdl-file CDL_FILE] [--indentation INDENTATION]
+                    [--data-bytes-per-line DATA_BYTES_PER_LINE]
+                    [--unaccessed-as-data] [--no-anonymous-labels]
                     input_file
 
 An NES (6502) disassembler.
@@ -60,21 +62,30 @@ optional arguments:
                         Assume the game never accesses (reads/writes/executes)
                         these addresses. Zero or more ranges separated by
                         commas. Each range consists of two hexadecimal
-                        addresses (0000...ffff) separated by a hyphen.
+                        addresses (0000 to ffff) separated by a hyphen.
                         Examples: 0800-1fff = mirrors of RAM, 2008-3fff =
                         mirrors of PPU registers, 4020-5fff = beginning of
                         cartridge space, 6000-7fff = PRG RAM.
   --no-write NO_WRITE   Assume the game never writes these addresses (via
-                        ASL/DEC/INC/LSR/ROL/ROR/STA/STX/STY). Same syntax as
+                        STA/STX/STY/DEC/INC/ASL/LSR/ROL/ROR). Same syntax as
                         in --no-access. Example: 8000-ffff = PRG ROM.
   --no-execute NO_EXECUTE
                         Assume the game never executes these addresses (via
-                        BCC/BCS/BEQ/BMI/BNE/BPL/BVC/BVS/JMP/JSR). Same syntax
-                        as in --no-access. Examples: 0000-1fff = RAM,
-                        2000-401f = memory-mapped registers.
+                        JMP, JSR or a branch instruction). Same syntax as in
+                        --no-access. Examples: 0000-1fff = RAM, 2000-401f =
+                        memory-mapped registers.
   --cdl-file CDL_FILE   The FCEUX code/data log file (.cdl) to read.
-  --unaccessed-as-data  If a CDL file is used, disassemble all unaccessed
-                        bytes as data.
+  --indentation INDENTATION
+                        How many spaces to use for indentation (0 or greater,
+                        default=8).
+  --data-bytes-per-line DATA_BYTES_PER_LINE
+                        How many data bytes to print per 'hex ...' line (1 or
+                        greater, default=8).
+  --unaccessed-as-data  Output unaccessed bytes as data instead of trying to
+                        disassemble them. (Note: without a CDL file, all bytes
+                        will be output as data.)
+  --no-anonymous-labels
+                        Do not use anonymous PRG ROM labels ('+' and '-').
 ```
 
 ## Sample output

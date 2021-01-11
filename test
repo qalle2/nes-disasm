@@ -1,0 +1,71 @@
+clear
+
+rm -f test-out/*.asm
+rm -f test-out/*.prg
+
+# disassemble, reassemble and verify various games
+# note: opcodes:
+# 01 = ORA (indirect,x), 41 = EOR (indirect,x), c1 = CMP (indirect,x), e1 = SBC (indirect,x)
+
+echo "=== all-instructions.prg ==="
+python3 nesdisasm.py test-in/all-instructions.prg > test-out/all-instructions.asm
+asm6 test-out/all-instructions.asm test-out/all-instructions.prg
+diff test-in/all-instructions.prg test-out/all-instructions.prg
+echo
+
+echo "=== all-instructions.prg (don't disassemble anything) ==="
+python3 nesdisasm.py --unaccessed-as-data test-in/all-instructions.prg > test-out/all-instructions-nodis.asm
+asm6 test-out/all-instructions-nodis.asm test-out/all-instructions-nodis.prg
+diff test-in/all-instructions.prg test-out/all-instructions-nodis.prg
+echo
+
+echo "=== anontest.prg ==="
+python3 nesdisasm.py test-in/anontest.prg > test-out/anontest.asm
+asm6 test-out/anontest.asm test-out/anontest.prg
+diff test-in/anontest.prg test-out/anontest.prg
+echo
+
+echo "=== anontest.prg (no anonymous labels) ==="
+python3 nesdisasm.py --no-anonymous-labels test-in/anontest.prg > test-out/anontest-noanon.asm
+asm6 test-out/anontest-noanon.asm test-out/anontest-noanon.prg
+diff test-in/anontest.prg test-out/anontest-noanon.prg
+echo
+
+echo "=== Game Genie ==="
+python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00 --no-access 0800-1fff,2008-3fff,4020-7fff --no-execute 2000-401f test-in/gamegenie.prg > test-out/gamegenie.asm
+cp test-out/gamegenie.asm sample-output.txt
+asm6 test-out/gamegenie.asm test-out/gamegenie.prg
+diff test-in/gamegenie.prg test-out/gamegenie.prg
+echo
+
+echo "=== Excitebike (CDL) ==="
+python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00 --no-access 0800-1fff,2008-3fff,4020-bfff --no-execute 2000-401f --no-write 8000-ffff test-in/excitebike.prg --cdl-file ~/nes/cdl/excitebike-ju.cdl > test-out/excitebike.asm
+asm6 test-out/excitebike.asm test-out/excitebike.prg
+diff test-in/excitebike.prg test-out/excitebike.prg
+echo
+
+echo "=== Lunar Pool (CDL; disassemble unaccessed bytes) ==="
+python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00,01,41,c1,e1 --no-access 0800-1fff,2008-3fff,4020-bfff --no-execute 2000-401f --no-write 8000-ffff --cdl-file ~/nes/cdl/lunarpool-u.cdl test-in/lunarpool.prg > test-out/lunarpool.asm
+asm6 test-out/lunarpool.asm test-out/lunarpool.prg
+diff test-in/lunarpool.prg test-out/lunarpool.prg
+echo
+
+echo "=== Lunar Pool (CDL; don't disassemble unaccessed bytes) ==="
+python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00,01,41,c1,e1 --no-access 0800-1fff,2008-3fff,4020-bfff --no-execute 2000-401f --no-write 8000-ffff --cdl-file ~/nes/cdl/lunarpool-u.cdl --unaccessed-as-data test-in/lunarpool.prg > test-out/lunarpool-nounacc.asm
+asm6 test-out/lunarpool-nounacc.asm test-out/lunarpool-nounacc.prg
+diff test-in/lunarpool.prg test-out/lunarpool-nounacc.prg
+echo
+
+echo "=== Lunar Pool (no CDL) ==="
+python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00,01,41,c1,e1 --no-access 0800-1fff,2008-3fff,4020-bfff --no-execute 2000-401f --no-write 8000-ffff test-in/lunarpool.prg > test-out/lunarpool-nocdl.asm
+asm6 test-out/lunarpool-nocdl.asm test-out/lunarpool-nocdl.prg
+diff test-in/lunarpool.prg test-out/lunarpool-nocdl.prg
+echo
+
+echo "=== SMB (use CDL file, indentation 12, 16 data bytes/line) ==="
+# 00 = BRK, 01/21/41/61/81/a1/c1/e1 = (indirect,x), 11/31/51/71/d1/f1 = (indirect),y excluding LDA/STA
+python3 nesdisasm.py --no-absolute-zp --no-absolute-indexed-zp --no-opcodes 00,01,11,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 --no-access 0800-1fff,2008-3fff,4020-7fff --no-execute 2000-401f --no-write 8000-ffff --cdl-file ~/nes/cdl/smb1-w.cdl --indentation 12 --data-bytes-per-line 16 test-in/smb1.prg > test-out/smb1.asm
+asm6 test-out/smb1.asm test-out/smb1.prg
+diff test-in/smb1.prg test-out/smb1.prg
+echo
+

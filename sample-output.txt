@@ -1,8 +1,10 @@
 ; Input file: gamegenie.prg
-; Bytes: 4096 (0x1000)
-; Instruction bytes: 3736
-; Data bytes: 360
-; Labels: 424
+; Bytes - total      : 4096 (0x1000)
+; Bytes - instruction: 3736
+; Bytes - data       : 360
+; Labels - total: 424
+; Labels - '+'  : 75
+; Labels - '-'  : 37
 ; No CDL file was used.
 
 ; === RAM labels ($0000...$1fff) ===

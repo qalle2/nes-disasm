@@ -1,5 +1,3 @@
-INDENT_WIDTH = 8
-
 # enumerate addressing modes
 (
     AM_IMP,  # implied
@@ -246,24 +244,7 @@ HARDWARE_REGISTERS = {
     ACME_DATA,   # data: none of the above
 ) = range(4)
 
-# sets of addressing modes
-NON_ADDRESS_ADDRESSING_MODES    = set((AM_IMP, AM_AC, AM_IMM))
-ZERO_PAGE_ADDRESSING_MODES      = set((AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R))
-DIRECT_INDEXED_ADDRESSING_MODES = set((AM_ZX, AM_ZY, AM_ABX, AM_ABY))
-
-BITMASK_INSTRUCTIONS                  = set(("and", "ora", "eor"))
-IMMEDIATE_INDEX_REGISTER_INSTRUCTIONS = set(("ldx", "ldy", "cpx", "cpy"))
-
-# instructions and addressing modes that can write to memory
-WRITE_INSTRUCTIONS = set(("sta", "stx", "sty", "dec", "inc", "asl", "lsr", "rol", "ror"))
-WRITE_ADDRESSING_MODES = set((AM_Z, AM_ZX, AM_ZY, AM_AB, AM_ABX, AM_ABY))
-
 # instructions and addressing modes that can jump to an address
 JUMP_INSTRUCTIONS = set(("jmp", "jsr", "bne", "beq", "bpl", "bmi", "bcc", "bcs", "bvc", "bvs"))
 JUMP_ADDRESSING_MODES = set((AM_AB, AM_R))
-
-# NES CPU address space layout
-NES_RAM        = range(0x0000, 0x2000)
-NES_MISC_SPACE = range(0x2000, 0x8000)   # registers, PRG RAM
-NES_PRG_ROM    = range(0x8000, 0x10000)
 
