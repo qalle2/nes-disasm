@@ -25,26 +25,33 @@ The disassembler has a limited support for log files created with FCEUX Code/Dat
 * iNES ROM files (`.nes`) are not supported. (To convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).)
 * PRG ROM files larger than 32 KiB (i.e., bankswitched games) are not supported.
 * The origin address is always 64 KiB minus the PRG ROM file size.
-* The Linux scripts `test-*` are intended for my personal use. Do not run them without reading them.
 
 ## Command line arguments
 ```
-usage: nesdisasm.py [-h] [--no-absolute-zp] [--no-absolute-indexed-zp]
-                    [--no-opcodes NO_OPCODES] [--no-access NO_ACCESS]
-                    [--no-write NO_WRITE] [--no-execute NO_EXECUTE]
-                    [--cdl-file CDL_FILE] [--indentation INDENTATION]
-                    [--data-bytes-per-line DATA_BYTES_PER_LINE]
-                    [--unaccessed-as-data] [--no-anonymous-labels]
+usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION]
+                    [-d DATA_BYTES_PER_LINE] [--no-absolute-zp]
+                    [--no-absolute-indexed-zp] [--no-opcodes NO_OPCODES]
+                    [--no-access NO_ACCESS] [--no-write NO_WRITE]
+                    [--no-execute NO_EXECUTE] [--unaccessed-as-data]
+                    [--no-anonymous-labels]
                     input_file
 
 An NES (6502) disassembler.
 
 positional arguments:
-  input_file            The PRG ROM file to read. Maximum size: 32 KiB. (.nes
-                        files are not supported.)
+  input_file            The PRG ROM file to read. Size: 32 KiB or less and a
+                        power of two. (.nes files are not supported.)
 
 optional arguments:
   -h, --help            show this help message and exit
+  -c CDL_FILE, --cdl-file CDL_FILE
+                        The FCEUX code/data log file (.cdl) to read.
+  -i INDENTATION, --indentation INDENTATION
+                        How many spaces to use for indentation (8 to 64,
+                        default=8).
+  -d DATA_BYTES_PER_LINE, --data-bytes-per-line DATA_BYTES_PER_LINE
+                        How many data bytes to print per 'hex ...' line (1 to
+                        64, default=8).
   --no-absolute-zp      Assume the game never accesses zero page using
                         absolute addressing if the instruction also supports
                         zero page addressing.
@@ -72,15 +79,8 @@ optional arguments:
   --no-execute NO_EXECUTE
                         Assume the game never executes these addresses (via
                         JMP, JSR or a branch instruction). Same syntax as in
-                        --no-access. Examples: 0000-1fff = RAM, 2000-401f =
-                        memory-mapped registers.
-  --cdl-file CDL_FILE   The FCEUX code/data log file (.cdl) to read.
-  --indentation INDENTATION
-                        How many spaces to use for indentation (0 or greater,
-                        default=8).
-  --data-bytes-per-line DATA_BYTES_PER_LINE
-                        How many data bytes to print per 'hex ...' line (1 or
-                        greater, default=8).
+                        --no-access. Example: 2000-401f = memory-mapped
+                        registers.
   --unaccessed-as-data  Output unaccessed bytes as data instead of trying to
                         disassemble them. (Note: without a CDL file, all bytes
                         will be output as data.)
@@ -89,7 +89,11 @@ optional arguments:
 ```
 
 ## Sample output
-[Game Genie ROM](sample-output.txt) (see [this script](test-other) for command line arguments used)
+[Game Genie ROM](sample-output.txt) (see [this script](test) for command line arguments used)
+
+## Hints
+* If ASM6 cannot reassemble the disassembly correctly, try enabling the options starting with `--no-absolute-`.
+* Use a CDL file to avoid unnecessary manual work. If you can't, try the options starting with `--no-` (except for `--no-anonymous-labels`) to help the disassembler avoid disassembling bytes that "make no sense" as code.
 
 ## To do
 * Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)

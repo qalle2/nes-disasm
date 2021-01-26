@@ -595,6 +595,18 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="An NES (6502) disassembler.")
 
     parser.add_argument(
+        "-c", "--cdl-file", type=str, default="",
+        help="The FCEUX code/data log file (.cdl) to read."
+    )
+    parser.add_argument(
+        "-i", "--indentation", type=int, default=8,
+        help="How many spaces to use for indentation (8 to 64, default=8)."
+    )
+    parser.add_argument(
+        "-d", "--data-bytes-per-line", type=int, default=8,
+        help="How many data bytes to print per 'hex ...' line (1 to 64, default=8)."
+    )
+    parser.add_argument(
         "--no-absolute-zp", action="store_true",
         help="Assume the game never accesses zero page using absolute addressing if the "
         "instruction also supports zero page addressing."
@@ -627,19 +639,7 @@ def parse_arguments():
         "--no-execute", type=str, default="",
         help="Assume the game never executes these addresses (via JMP, JSR or a branch "
         "instruction). Same syntax as in --no-access. "
-        "Examples: 0000-1fff = RAM, 2000-401f = memory-mapped registers."
-    )
-    parser.add_argument(
-        "--cdl-file", type=str, default="",
-        help="The FCEUX code/data log file (.cdl) to read."
-    )
-    parser.add_argument(
-        "--indentation", type=int, default=8,
-        help="How many spaces to use for indentation (0 or greater, default=8)."
-    )
-    parser.add_argument(
-        "--data-bytes-per-line", type=int, default=8,
-        help="How many data bytes to print per 'hex ...' line (1 or greater, default=8)."
+        "Example: 2000-401f = memory-mapped registers."
     )
     parser.add_argument(
         "--unaccessed-as-data", action="store_true",
@@ -652,14 +652,15 @@ def parse_arguments():
     )
     parser.add_argument(
         "input_file",
-        help="The PRG ROM file to read. Maximum size: 32 KiB. (.nes files are not supported.)"
+        help="The PRG ROM file to read. Size: 32 KiB or less and a power of two. "
+        "(.nes files are not supported.)"
     )
 
     args = parser.parse_args()
 
-    if args.indentation < 0:
+    if not 8 <= args.indentation <= 64:
         sys.exit("Invalid indentation argument.")
-    if args.data_bytes_per_line < 1:
+    if not 1 <= args.data_bytes_per_line <= 64:
         sys.exit("Invalid 'data bytes per line' argument.")
     if not os.path.isfile(args.input_file):
         sys.exit("Input file not found.")
@@ -713,8 +714,9 @@ def main():
         PRGSize = os.path.getsize(args.input_file)
     except OSError:
         sys.exit("Could not get PRG file size.")
-    if PRGSize > 32 * 1024:
-        sys.exit("The input file must be 32 KiB or less.")
+    # https://graphics.stanford.edu/~seander/bithacks.html#DetermineIfPowerOf2
+    if not 1 <= PRGSize <= 32 * 1024 or PRGSize & (PRGSize - 1):
+        sys.exit("The input file size must be 32 KiB or less and a power of two.")
 
     # get CDL data
     if args.cdl_file:
