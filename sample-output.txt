@@ -1,15 +1,15 @@
 ; Input file: gamegenie.prg
-; Bytes - total      : 4096 (0x1000)
+; Bytes - total      : 4096
 ; Bytes - instruction: 3683
 ; Bytes - data       : 413
-; Labels - total: 422
-; Labels - '+'  : 75
-; Labels - '-'  : 37
+; Labels - total    : 422
+; Labels - named    : 310
+; Labels - anonymous: 112
 ; No CDL file was used.
 
-; === RAM labels ($0000...$1fff) ===
+; === Address labels outside PRG ROM ===
 
-array1          equ $00
+arr1            equ $00
 ram1            equ $01
 ram2            equ $02
 ram3            equ $03
@@ -21,7 +21,7 @@ ram8            equ $08
 ram9            equ $0c
 ram10           equ $0d
 ram11           equ $0e
-array2          equ $10
+arr2            equ $10
 ram12           equ $15
 ram13           equ $16
 ram14           equ $17
@@ -77,7 +77,7 @@ ram63           equ $56
 ram64           equ $57
 ram65           equ $58
 ram66           equ $59
-array3          equ $5a
+arr3            equ $5a
 ram67           equ $5b
 ram68           equ $5c
 ram69           equ $5d
@@ -123,11 +123,11 @@ ram108          equ $85
 ram109          equ $86
 ram110          equ $87
 ram111          equ $88
-array4          equ $89
-array5          equ $8a
-array6          equ $8b
-array7          equ $8d
-array8          equ $90
+arr4            equ $89
+arr5            equ $8a
+arr6            equ $8b
+arr7            equ $8d
+arr8            equ $90
 ram112          equ $91
 ram113          equ $94
 ram114          equ $95
@@ -136,91 +136,87 @@ ram116          equ $99
 ram117          equ $a0
 ram118          equ $c4
 ram119          equ $e4
-array9          equ $f7
-array10         equ $fc
+arr9            equ $f7
+arr10           equ $fc
 
-array11         equ $01ff
-array12         equ $0200
-array13         equ $0201
-array14         equ $0202
-array15         equ $0203
+arr11           equ $01ff
+arr12           equ $0200
+arr13           equ $0201
+arr14           equ $0202
+arr15           equ $0203
 ram120          equ $02e0
-array16         equ $0300
-array17         equ $0400
-array18         equ $0420
-array19         equ $0440
+arr16           equ $0300
+arr17           equ $0400
+arr18           equ $0420
+arr19           equ $0440
 ram121          equ $0441
 ram122          equ $0442
-array20         equ $0443
-array21         equ $0463
+arr20           equ $0443
+arr21           equ $0463
 ram123          equ $0477
 ram124          equ $0478
 ram125          equ $0479
 ram126          equ $047a
 ram127          equ $0484
-array22         equ $04a3
+arr22           equ $04a3
 ram128          equ $04c0
-array23         equ $04e3
+arr23           equ $04e3
 ram129          equ $0500
-array24         equ $0523
-array25         equ $0563
-array26         equ $0564
-array27         equ $0595
-array28         equ $0596
+arr24           equ $0523
+arr25           equ $0563
+arr26           equ $0564
+arr27           equ $0595
+arr28           equ $0596
 ram130          equ $05e4
-array29         equ $060b
-array30         equ $062b
-array31         equ $066b
-array32         equ $067b
+arr29           equ $060b
+arr30           equ $062b
+arr31           equ $066b
+arr32           equ $067b
 ram131          equ $067d
 ram132          equ $0760
 ram133          equ $07a4
 ram134          equ $07e0
 
-; === NES memory-mapped registers ===
-
-ppu_ctrl    equ $2000
-ppu_mask    equ $2001
-ppu_status  equ $2002
-oam_addr    equ $2003
-;oam_data   equ $2004
-ppu_scroll  equ $2005
-ppu_addr    equ $2006
-ppu_data    equ $2007
-sq1_vol     equ $4000
-sq1_sweep   equ $4001
-sq1_lo      equ $4002
-sq1_hi      equ $4003
-;sq2_vol    equ $4004
-;sq2_sweep  equ $4005
-;sq2_lo     equ $4006
-;sq2_hi     equ $4007
-;tri_linear equ $4008
-;tri_lo     equ $400a
-;tri_hi     equ $400b
-noise_vol   equ $400c
-noise_lo    equ $400e
-noise_hi    equ $400f
-;dmc_freq   equ $4010
-;dmc_raw    equ $4011
-;dmc_start  equ $4012
-;dmc_len    equ $4013
-oam_dma     equ $4014
-snd_chn     equ $4015
-joypad1     equ $4016
-joypad2     equ $4017
-;apu_test1  equ $4018
-;apu_test2  equ $4019
-;apu_test3  equ $401a
-;cpu_timer1 equ $401c
-;cpu_timer2 equ $401d
-;cpu_timer3 equ $401e
-;cpu_timer4 equ $401f
-
-; === Misc labels ($2000...$7fff excluding NES memory-mapped registers) ===
+ppu_ctrl        equ $2000
+ppu_mask        equ $2001
+ppu_status      equ $2002
+oam_addr        equ $2003
+;oam_data       equ $2004
+ppu_scroll      equ $2005
+ppu_addr        equ $2006
+ppu_data        equ $2007
+sq1_vol         equ $4000
+sq1_sweep       equ $4001
+sq1_lo          equ $4002
+sq1_hi          equ $4003
+;sq2_vol        equ $4004
+;sq2_sweep      equ $4005
+;sq2_lo         equ $4006
+;sq2_hi         equ $4007
+;tri_linear     equ $4008
+;tri_lo         equ $400a
+;tri_hi         equ $400b
+noise_vol       equ $400c
+noise_lo        equ $400e
+noise_hi        equ $400f
+;dmc_freq       equ $4010
+;dmc_raw        equ $4011
+;dmc_start      equ $4012
+;dmc_len        equ $4013
+oam_dma         equ $4014
+snd_chn         equ $4015
+joypad1         equ $4016
+joypad2         equ $4017
+;apu_test1      equ $4018
+;apu_test2      equ $4019
+;apu_test3      equ $401a
+;cpu_timer1     equ $401c
+;cpu_timer2     equ $401d
+;cpu_timer3     equ $401e
+;cpu_timer4     equ $401f
 
 
-; === PRG ROM (CPU $f000...$ffff) ===
+; === PRG ROM (CPU $f000-$ffff) ===
 
         org $f000
 
@@ -231,12 +227,12 @@ joypad2     equ $4017
         ldx #255                     ; f007: a2 ff
         txs                          ; f009: 9a
         lda #$00                     ; f00a: a9 00
-        sta data15                   ; f00c: 8d f0 ff
+        sta dat15                    ; f00c: 8d f0 ff
         jsr sub1                     ; f00f: 20 1e f0
-        sta code58                   ; f012: 8d f1 ff
+        sta cod58                    ; f012: 8d f1 ff
         jsr sub1                     ; f015: 20 1e f0
-        sta data15                   ; f018: 8d f0 ff
-        jmp code1                    ; f01b: 4c 29 f0
+        sta dat15                    ; f018: 8d f0 ff
+        jmp cod1                     ; f01b: 4c 29 f0
 sub1    ldx #96                      ; f01e: a2 60
         ldy #8                       ; f020: a0 08
 -       dex                          ; f022: ca
@@ -244,7 +240,7 @@ sub1    ldx #96                      ; f01e: a2 60
         dey                          ; f025: 88
         bne -                        ; f026: d0 fa
         rts                          ; f028: 60
-code1   ldx #10                      ; f029: a2 0a
+cod1    ldx #10                      ; f029: a2 0a
 -       lda ppu_status               ; f02b: ad 02 20
         bpl -                        ; f02e: 10 fb
         dex                          ; f030: ca
@@ -254,9 +250,9 @@ code1   ldx #10                      ; f029: a2 0a
         lda #$07                     ; f036: a9 07
         sta ram1                     ; f038: 85 01
         lda #$00                     ; f03a: a9 00
-        sta array1                   ; f03c: 85 00
+        sta arr1                     ; f03c: 85 00
         tay                          ; f03e: a8
--       sta (array1),y               ; f03f: 91 00
+-       sta (arr1),y                 ; f03f: 91 00
         iny                          ; f041: c8
         bne -                        ; f042: d0 fb
         dec ram1                     ; f044: c6 01
@@ -265,12 +261,12 @@ code1   ldx #10                      ; f029: a2 0a
         sta ram1                     ; f04a: 85 01
         sta ppu_mask                 ; f04c: 8d 01 20
         lda #$80                     ; f04f: a9 80
-        sta array1                   ; f051: 85 00
+        sta arr1                     ; f051: 85 00
         sta ppu_ctrl                 ; f053: 8d 00 20
 
         hex ce 2b 00                 ; f056
 
-        jmp code14                   ; f059: 4c 1f f4
+        jmp cod14                    ; f059: 4c 1f f4
 sub2    lda #$01                     ; f05c: a9 01
         sta joypad1                  ; f05e: 8d 16 40
         lda #$00                     ; f061: a9 00
@@ -300,14 +296,14 @@ sub2    lda #$01                     ; f05c: a9 01
 
         hex ad                       ; f08c
 
-        eor array1                   ; f08d: 45 00
+        eor arr1                     ; f08d: 45 00
         sta ppu_scroll               ; f08f: 8d 05 20
 
         hex ad                       ; f092
 
-        lsr array1                   ; f093: 46 00
+        lsr arr1                     ; f093: 46 00
         sta ppu_scroll               ; f095: 8d 05 20
-        lda array1                   ; f098: a5 00
+        lda arr1                     ; f098: a5 00
         sta ppu_ctrl                 ; f09a: 8d 00 20
 +       lda #$01                     ; f09d: a9 01
 
@@ -347,7 +343,7 @@ sub3    stx ram14                    ; f0a8: 86 17
 
         lda #$00                     ; f0cb: a9 00
         sta ram13                    ; f0cd: 85 16
-code2   lda #$00                     ; f0cf: a9 00
+cod2    lda #$00                     ; f0cf: a9 00
         sta ram12                    ; f0d1: 85 15
 -       jsr sub4                     ; f0d3: 20 e7 f0
         inc ram12                    ; f0d6: e6 15
@@ -357,7 +353,7 @@ code2   lda #$00                     ; f0cf: a9 00
         inc ram13                    ; f0de: e6 16
         lda ram13                    ; f0e0: a5 16
         cmp ram11                    ; f0e2: c5 0e
-        bne code2                    ; f0e4: d0 e9
+        bne cod2                     ; f0e4: d0 e9
         rts                          ; f0e6: 60
 sub4    lda ram13                    ; f0e7: a5 16
         ldx ram10                    ; f0e9: a6 0d
@@ -386,13 +382,13 @@ sub4    lda ram13                    ; f0e7: a5 16
         beq +                        ; f0ff: f0 07
         lda ram4                     ; f101: a5 04
         and #%00001111               ; f103: 29 0f
-        jmp code3                    ; f105: 4c 0e f1
+        jmp cod3                     ; f105: 4c 0e f1
 +       lda ram4                     ; f108: a5 04
         lsr a                        ; f10a: 4a
         lsr a                        ; f10b: 4a
         lsr a                        ; f10c: 4a
         lsr a                        ; f10d: 4a
-code3   sta ram16                    ; f10e: 85 19
+cod3    sta ram16                    ; f10e: 85 19
         lda ram14                    ; f110: a5 17
         clc                          ; f112: 18
         adc ram12                    ; f113: 65 15
@@ -428,9 +424,9 @@ code3   sta ram16                    ; f10e: 85 19
         lda ram20                    ; f147: a5 20
         sta ram122                   ; f149: 8d 42 04
         lda ram16                    ; f14c: a5 19
-        sta array20                  ; f14e: 8d 43 04
+        sta arr20                    ; f14e: 8d 43 04
         lda #$01                     ; f151: a9 01
-        sta array19                  ; f153: 8d 40 04
+        sta arr19                    ; f153: 8d 40 04
         jsr sub8                     ; f156: 20 b9 f1
         rts                          ; f159: 60
 sub5    sta ram23                    ; f15a: 85 27
@@ -450,9 +446,9 @@ sub6    lda #$00                     ; f169: a9 00
 sub7    lda #$64                     ; f174: a9 64
         sta ram28                    ; f176: 85 2c
         ldy ram25                    ; f178: a4 29
-code4   cpy ram26                    ; f17a: c4 2a
+cod4    cpy ram26                    ; f17a: c4 2a
         beq +                        ; f17c: f0 38
-        lda array16,y                ; f17e: b9 00 03
+        lda arr16,y                  ; f17e: b9 00 03
         tax                          ; f181: aa
         clc                          ; f182: 18
         adc #$05                     ; f183: 69 05
@@ -464,25 +460,25 @@ code4   cpy ram26                    ; f17a: c4 2a
         sta ram28                    ; f18e: 85 2c
         lda ram27                    ; f190: a5 2b
         clc                          ; f192: 18
-        adc array16,y                ; f193: 79 00 03
+        adc arr16,y                  ; f193: 79 00 03
         adc #$03                     ; f196: 69 03
         sta ram27                    ; f198: 85 2b
         iny                          ; f19a: c8
-        lda array16,y                ; f19b: b9 00 03
+        lda arr16,y                  ; f19b: b9 00 03
         sta ppu_addr                 ; f19e: 8d 06 20
         iny                          ; f1a1: c8
-        lda array16,y                ; f1a2: b9 00 03
+        lda arr16,y                  ; f1a2: b9 00 03
         sta ppu_addr                 ; f1a5: 8d 06 20
         iny                          ; f1a8: c8
--       lda array16,y                ; f1a9: b9 00 03
+-       lda arr16,y                  ; f1a9: b9 00 03
         sta ppu_data                 ; f1ac: 8d 07 20
         iny                          ; f1af: c8
         dex                          ; f1b0: ca
         bne -                        ; f1b1: d0 f6
-        jmp code4                    ; f1b3: 4c 7a f1
+        jmp cod4                     ; f1b3: 4c 7a f1
 +       sty ram25                    ; f1b6: 84 29
         rts                          ; f1b8: 60
-sub8    lda array19                  ; f1b9: ad 40 04
+sub8    lda arr19                    ; f1b9: ad 40 04
         clc                          ; f1bc: 18
         adc #$03                     ; f1bd: 69 03
         sta ram4                     ; f1bf: 85 04
@@ -498,8 +494,8 @@ sub8    lda array19                  ; f1b9: ad 40 04
         sta ram27                    ; f1d4: 85 2b
         ldx #0                       ; f1d6: a2 00
         ldy ram26                    ; f1d8: a4 2a
--       lda array19,x                ; f1da: bd 40 04
-        sta array16,y                ; f1dd: 99 00 03
+-       lda arr19,x                  ; f1da: bd 40 04
+        sta arr16,y                  ; f1dd: 99 00 03
         inx                          ; f1e0: e8
         iny                          ; f1e1: c8
         cpx ram4                     ; f1e2: e4 04
@@ -522,20 +518,20 @@ sub9    sta ram33                    ; f1e9: 85 31
         jsr sub20                    ; f202: 20 b0 f5
         sta ram39                    ; f205: 85 38
         tax                          ; f207: aa
-        lda array25,x                ; f208: bd 63 05
+        lda arr25,x                  ; f208: bd 63 05
         tax                          ; f20b: aa
         lda ram35                    ; f20c: a5 34
-        sta array27,x                ; f20e: 9d 95 05
+        sta arr27,x                  ; f20e: 9d 95 05
         lda ram36                    ; f211: a5 35
-        sta array28,x                ; f213: 9d 96 05
+        sta arr28,x                  ; f213: 9d 96 05
         inx                          ; f216: e8
         inx                          ; f217: e8
         ldy #255                     ; f218: a0 ff
 -       iny                          ; f21a: c8
-        lda array21,y                ; f21b: b9 63 04
+        lda arr21,y                  ; f21b: b9 63 04
         bne -                        ; f21e: d0 fa
         tya                          ; f220: 98
-        sta array27,x                ; f221: 9d 95 05
+        sta arr27,x                  ; f221: 9d 95 05
         inx                          ; f224: e8
         dec ram38                    ; f225: c6 37
         bne -                        ; f227: d0 f1
@@ -567,11 +563,11 @@ sub10   sta ram4                     ; f238: 85 04
         adc #$fe                     ; f256: 69 fe
         sta ram41                    ; f258: 85 3a
         rts                          ; f25a: 60
-sub11   lda array25,x                ; f25b: bd 63 05
+sub11   lda arr25,x                  ; f25b: bd 63 05
         tax                          ; f25e: aa
-        lda array27,x                ; f25f: bd 95 05
+        lda arr27,x                  ; f25f: bd 95 05
         sta ram35                    ; f262: 85 34
-        lda array28,x                ; f264: bd 96 05
+        lda arr28,x                  ; f264: bd 96 05
         sta ram36                    ; f267: 85 35
         inx                          ; f269: e8
         inx                          ; f26a: e8
@@ -579,32 +575,32 @@ sub11   lda array25,x                ; f25b: bd 63 05
         sta ram43                    ; f26d: 85 3c
         lda ram32                    ; f26f: a5 30
         sta ram44                    ; f271: 85 3d
-code5   lda ram44                    ; f273: a5 3d
-        bne code9                    ; f275: d0 54
+cod5    lda ram44                    ; f273: a5 3d
+        bne cod9                     ; f275: d0 54
         lda ram35                    ; f277: a5 34
         sta ram42                    ; f279: 85 3b
         lda ram29                    ; f27b: a5 2d
         sta ram45                    ; f27d: 85 3e
         lda ram30                    ; f27f: a5 2e
         sta ram46                    ; f281: 85 3f
-code6   lda ram46                    ; f283: a5 3f
+cod6    lda ram46                    ; f283: a5 3f
         bne +                        ; f285: d0 17
-        lda array27,x                ; f287: bd 95 05
+        lda arr27,x                  ; f287: bd 95 05
         tay                          ; f28a: a8
-        lda array24,y                ; f28b: b9 23 05
+        lda arr24,y                  ; f28b: b9 23 05
         beq +                        ; f28e: f0 0e
         lda ram45                    ; f290: a5 3e
-        sta array22,y                ; f292: 99 a3 04
+        sta arr22,y                  ; f292: 99 a3 04
         lda ram43                    ; f295: a5 3c
-        sta array23,y                ; f297: 99 e3 04
+        sta arr23,y                  ; f297: 99 e3 04
         inx                          ; f29a: e8
-        jmp code7                    ; f29b: 4c a8 f2
-+       lda array27,x                ; f29e: bd 95 05
+        jmp cod7                     ; f29b: 4c a8 f2
++       lda arr27,x                  ; f29e: bd 95 05
         tay                          ; f2a1: a8
         lda #$ff                     ; f2a2: a9 ff
-        sta array23,y                ; f2a4: 99 e3 04
+        sta arr23,y                  ; f2a4: 99 e3 04
         inx                          ; f2a7: e8
-code7   lda ram45                    ; f2a8: a5 3e
+cod7    lda ram45                    ; f2a8: a5 3e
         clc                          ; f2aa: 18
         adc #$08                     ; f2ab: 69 08
         sta ram45                    ; f2ad: 85 3e
@@ -612,8 +608,8 @@ code7   lda ram45                    ; f2a8: a5 3e
         adc #$00                     ; f2b1: 69 00
         sta ram46                    ; f2b3: 85 3f
         dec ram42                    ; f2b5: c6 3b
-        bne code6                    ; f2b7: d0 ca
-code8   lda ram43                    ; f2b9: a5 3c
+        bne cod6                     ; f2b7: d0 ca
+cod8    lda ram43                    ; f2b9: a5 3c
         clc                          ; f2bb: 18
         adc #$08                     ; f2bc: 69 08
         sta ram43                    ; f2be: 85 3c
@@ -621,20 +617,20 @@ code8   lda ram43                    ; f2b9: a5 3c
         adc #$00                     ; f2c2: 69 00
         sta ram44                    ; f2c4: 85 3d
         dec ram36                    ; f2c6: c6 35
-        bne code5                    ; f2c8: d0 a9
+        bne cod5                     ; f2c8: d0 a9
         rts                          ; f2ca: 60
-code9   lda ram35                    ; f2cb: a5 34
+cod9    lda ram35                    ; f2cb: a5 34
         sta ram42                    ; f2cd: 85 3b
--       lda array27,x                ; f2cf: bd 95 05
+-       lda arr27,x                  ; f2cf: bd 95 05
         tay                          ; f2d2: a8
         lda #$ff                     ; f2d3: a9 ff
-        sta array23,y                ; f2d5: 99 e3 04
+        sta arr23,y                  ; f2d5: 99 e3 04
         inx                          ; f2d8: e8
         dec ram42                    ; f2d9: c6 3b
         bne -                        ; f2db: d0 f2
-        jmp code8                    ; f2dd: 4c b9 f2
+        jmp cod8                     ; f2dd: 4c b9 f2
 sub12   sta ram33                    ; f2e0: 85 31
-        lda array25,x                ; f2e2: bd 63 05
+        lda arr25,x                  ; f2e2: bd 63 05
         clc                          ; f2e5: 18
         adc #$02                     ; f2e6: 69 02
         pha                          ; f2e8: 48
@@ -658,9 +654,9 @@ sub12   sta ram33                    ; f2e0: 85 31
         sta ram49                    ; f30b: 85 42
         pla                          ; f30d: 68
         tax                          ; f30e: aa
-code10  lda ram35                    ; f30f: a5 34
+cod10   lda ram35                    ; f30f: a5 34
         sta ram42                    ; f311: 85 3b
-code11  lda ram47                    ; f313: a5 40
+cod11   lda ram47                    ; f313: a5 40
         lsr a                        ; f315: 4a
         clc                          ; f316: 18
         adc #$01                     ; f317: 69 01
@@ -672,40 +668,40 @@ code11  lda ram47                    ; f313: a5 40
         beq +                        ; f322: f0 07
         lda ram4                     ; f324: a5 04
         and #%00001111               ; f326: 29 0f
-        jmp code12                   ; f328: 4c 31 f3
+        jmp cod12                    ; f328: 4c 31 f3
 +       lda ram4                     ; f32b: a5 04
         lsr a                        ; f32d: 4a
         lsr a                        ; f32e: 4a
         lsr a                        ; f32f: 4a
         lsr a                        ; f330: 4a
-code12  pha                          ; f331: 48
-        lda array27,x                ; f332: bd 95 05
+cod12   pha                          ; f331: 48
+        lda arr27,x                  ; f332: bd 95 05
         tay                          ; f335: a8
         pla                          ; f336: 68
-        sta array24,y                ; f337: 99 23 05
+        sta arr24,y                  ; f337: 99 23 05
         lda ram37                    ; f33a: a5 36
-        sta array21,y                ; f33c: 99 63 04
+        sta arr21,y                  ; f33c: 99 63 04
         inx                          ; f33f: e8
         lda ram47                    ; f340: a5 40
         clc                          ; f342: 18
         adc ram48                    ; f343: 65 41
         sta ram47                    ; f345: 85 40
         dec ram42                    ; f347: c6 3b
-        bne code11                   ; f349: d0 c8
+        bne cod11                    ; f349: d0 c8
         lda ram47                    ; f34b: a5 40
         clc                          ; f34d: 18
         adc ram49                    ; f34e: 65 42
         sta ram47                    ; f350: 85 40
         dec ram36                    ; f352: c6 35
-        bne code10                   ; f354: d0 b9
+        bne cod10                    ; f354: d0 b9
         rts                          ; f356: 60
 sub13   lda ram50                    ; f357: a5 43
         eor #%00000001               ; f359: 49 01
         sta ram50                    ; f35b: 85 43
-        bne code13                   ; f35d: d0 17
+        bne cod13                    ; f35d: d0 17
         ldy #8                       ; f35f: a0 08
         ldx #61                      ; f361: a2 3d
--       lda array21,x                ; f363: bd 63 04
+-       lda arr21,x                  ; f363: bd 63 04
         beq +                        ; f366: f0 07
         jsr sub14                    ; f368: 20 91 f3
         dex                          ; f36b: ca
@@ -715,9 +711,9 @@ sub13   lda ram50                    ; f357: a5 43
         dex                          ; f372: ca
         bpl -                        ; f373: 10 ee
         rts                          ; f375: 60
-code13  ldy #8                       ; f376: a0 08
+cod13   ldy #8                       ; f376: a0 08
         ldx #0                       ; f378: a2 00
--       lda array21,x                ; f37a: bd 63 04
+-       lda arr21,x                  ; f37a: bd 63 04
         beq +                        ; f37d: f0 09
         jsr sub14                    ; f37f: 20 91 f3
         inx                          ; f382: e8
@@ -729,20 +725,20 @@ code13  ldy #8                       ; f376: a0 08
         cpx #62                      ; f38c: e0 3e
         bne -                        ; f38e: d0 ea
         rts                          ; f390: 60
-sub14   sta array14,y                ; f391: 99 02 02
-        lda array23,x                ; f394: bd e3 04
-        sta array12,y                ; f397: 99 00 02
-        lda array24,x                ; f39a: bd 23 05
-        sta array13,y                ; f39d: 99 01 02
-        lda array22,x                ; f3a0: bd a3 04
-        sta array15,y                ; f3a3: 99 03 02
+sub14   sta arr14,y                  ; f391: 99 02 02
+        lda arr23,x                  ; f394: bd e3 04
+        sta arr12,y                  ; f397: 99 00 02
+        lda arr24,x                  ; f39a: bd 23 05
+        sta arr13,y                  ; f39d: 99 01 02
+        lda arr22,x                  ; f3a0: bd a3 04
+        sta arr15,y                  ; f3a3: 99 03 02
         iny                          ; f3a6: c8
         iny                          ; f3a7: c8
         iny                          ; f3a8: c8
         iny                          ; f3a9: c8
         rts                          ; f3aa: 60
 sub15   lda #$ff                     ; f3ab: a9 ff
-        sta array12,y                ; f3ad: 99 00 02
+        sta arr12,y                  ; f3ad: 99 00 02
         iny                          ; f3b0: c8
         iny                          ; f3b1: c8
         iny                          ; f3b2: c8
@@ -771,43 +767,43 @@ sub16   lda ram19                    ; f3b5: a5 1f
         lda #$23                     ; f3d7: a9 23
         sta ram121                   ; f3d9: 8d 41 04
         lda #$01                     ; f3dc: a9 01
-        sta array19                  ; f3de: 8d 40 04
-        lda data1,y                  ; f3e1: b9 fb f3
+        sta arr19                    ; f3de: 8d 40 04
+        lda dat1,y                   ; f3e1: b9 fb f3
         and ram17                    ; f3e4: 25 1a
         sta ram4                     ; f3e6: 85 04
-        lda data1,y                  ; f3e8: b9 fb f3
+        lda dat1,y                   ; f3e8: b9 fb f3
         eor #%11111111               ; f3eb: 49 ff
-        and array17,x                ; f3ed: 3d 00 04
+        and arr17,x                  ; f3ed: 3d 00 04
         ora ram4                     ; f3f0: 05 04
-        sta array17,x                ; f3f2: 9d 00 04
-        sta array20                  ; f3f5: 8d 43 04
+        sta arr17,x                  ; f3f2: 9d 00 04
+        sta arr20                    ; f3f5: 8d 43 04
         jmp sub8                     ; f3f8: 4c b9 f1
 
-data1   hex 03 0c                    ; f3fb
+dat1    hex 03 0c                    ; f3fb
 
         bmi $f3bf                    ; f3fd: 30 c0
 
-data2   hex 0d 00 00 2c 00 00 00     ; f3ff
+dat2    hex 0d 00 00 2c 00 00 00     ; f3ff
 
-        rol array1                   ; f406: 26 00
+        rol arr1                     ; f406: 26 00
 
         hex 00 00                    ; f408
 
-        jsr array1                   ; f40a: 20 00 00
+        jsr arr1                     ; f40a: 20 00 00
 
         hex 00 00 0d 00 00 13 00 00  ; f40d
         hex 00                       ; f415
 
-        rol array1                   ; f416: 26 00
+        rol arr1                     ; f416: 26 00
 
         hex 00 00                    ; f418
 
-        jsr array1                   ; f41a: 20 00 00
+        jsr arr1                     ; f41a: 20 00 00
 
         hex 00                       ; f41d
 
         plp                          ; f41e: 28
-code14  lda #$01                     ; f41f: a9 01
+cod14   lda #$01                     ; f41f: a9 01
         sta ram9                     ; f421: 85 0c
         lda #$20                     ; f423: a9 20
         sta ram5                     ; f425: 85 05
@@ -824,7 +820,7 @@ code14  lda #$01                     ; f41f: a9 01
         jsr sub21                    ; f43b: 20 d3 f5
         ldx #0                       ; f43e: a2 00
         lda #$00                     ; f440: a9 00
--       sta array25,x                ; f442: 9d 63 05
+-       sta arr25,x                  ; f442: 9d 63 05
         inx                          ; f445: e8
         cpx #50                      ; f446: e0 32
         bne -                        ; f448: d0 f8
@@ -844,12 +840,12 @@ code14  lda #$01                     ; f41f: a9 01
 
         hex 8d                       ; f45d
 
-        eor array1,x                 ; f45e: 55 00
+        eor arr1,x                   ; f45e: 55 00
         lda #$96                     ; f460: a9 96
 
         hex 8d                       ; f462
 
-        lsr array1,x                 ; f463: 56 00
+        lsr arr1,x                   ; f463: 56 00
         lda #$14                     ; f465: a9 14
         jsr sub9                     ; f467: 20 e9 f1
 
@@ -868,21 +864,21 @@ code14  lda #$01                     ; f41f: a9 01
         hex 8d 7b 00                 ; f47e
 
         ldx #19                      ; f481: a2 13
--       lda data3,x                  ; f483: bd 43 f8
-        sta array21,x                ; f486: 9d 63 04
+-       lda dat3,x                   ; f483: bd 43 f8
+        sta arr21,x                  ; f486: 9d 63 04
         dex                          ; f489: ca
         bpl -                        ; f48a: 10 f7
         lda #$09                     ; f48c: a9 09
         sta snd_chn                  ; f48e: 8d 15 40
         lda #$20                     ; f491: a9 20
-        sta array19                  ; f493: 8d 40 04
+        sta arr19                    ; f493: 8d 40 04
         lda #$3f                     ; f496: a9 3f
         sta ram121                   ; f498: 8d 41 04
         lda #$00                     ; f49b: a9 00
         sta ram122                   ; f49d: 8d 42 04
         ldy #0                       ; f4a0: a0 00
--       lda data2,y                  ; f4a2: b9 ff f3
-        sta array20,y                ; f4a5: 99 43 04
+-       lda dat2,y                   ; f4a2: b9 ff f3
+        sta arr20,y                  ; f4a5: 99 43 04
         iny                          ; f4a8: c8
         cpy #32                      ; f4a9: c0 20
         bne -                        ; f4ab: d0 f5
@@ -935,13 +931,13 @@ sub18   jsr sub2                     ; f4d4: 20 5c f0
 
 sub19   hex ad 5a 00                 ; f503
 
-        bne code18                   ; f506: d0 5d
+        bne cod18                    ; f506: d0 5d
         lda ram7                     ; f508: a5 07
         and #%00001000               ; f50a: 29 08
-        beq code16                   ; f50c: f0 2a
+        beq cod16                    ; f50c: f0 2a
         lda #$08                     ; f50e: a9 08
         jsr sub25                    ; f510: 20 ac f7
-        beq code16                   ; f513: f0 23
+        beq cod16                    ; f513: f0 23
         lda #$3f                     ; f515: a9 3f
 
         hex 8d                       ; f517
@@ -954,28 +950,28 @@ sub19   hex ad 5a 00                 ; f503
         jsr sub24                    ; f521: 20 8f f7
         beq +                        ; f524: f0 05
         lda #$20                     ; f526: a9 20
-        jmp code15                   ; f528: 4c 2d f5
+        jmp cod15                    ; f528: 4c 2d f5
 +       lda #$00                     ; f52b: a9 00
 
-code15  hex 8d 5b 00                 ; f52d
+cod15   hex 8d 5b 00                 ; f52d
 
         lda #$08                     ; f530: a9 08
 
         hex 8d 5e 00                 ; f532
 
-        jmp code18                   ; f535: 4c 65 f5
-code16  lda ram7                     ; f538: a5 07
+        jmp cod18                    ; f535: 4c 65 f5
+cod16   lda ram7                     ; f538: a5 07
         and #%00000100               ; f53a: 29 04
-        beq code18                   ; f53c: f0 27
+        beq cod18                    ; f53c: f0 27
         lda #$04                     ; f53e: a9 04
         jsr sub25                    ; f540: 20 ac f7
-        beq code18                   ; f543: f0 20
+        beq cod18                    ; f543: f0 20
         lda #$ff                     ; f545: a9 ff
 
         hex 8d                       ; f547
 
         eor $a900,y                  ; f548: 59 00 a9
-        inc array7,x                 ; f54b: f6 8d
+        inc arr7,x                   ; f54b: f6 8d
 
         hex 5a 00                    ; f54d
 
@@ -983,21 +979,21 @@ code16  lda ram7                     ; f538: a5 07
         jsr sub24                    ; f551: 20 8f f7
         beq +                        ; f554: f0 05
         lda #$20                     ; f556: a9 20
-        jmp code17                   ; f558: 4c 5d f5
+        jmp cod17                    ; f558: 4c 5d f5
 +       lda #$00                     ; f55b: a9 00
 
-code17  hex 8d 5b 00                 ; f55d
+cod17   hex 8d 5b 00                 ; f55d
 
         lda #$04                     ; f560: a9 04
 
         hex 8d 5e 00                 ; f562
-code18  hex ad                       ; f565
+cod18   hex ad                       ; f565
 
         cli                          ; f566: 58
 
         hex 00                       ; f567
 
-        bne code19                   ; f568: d0 45
+        bne cod19                    ; f568: d0 45
         lda ram7                     ; f56a: a5 07
         and #%00000010               ; f56c: 29 02
         beq +                        ; f56e: f0 1e
@@ -1024,13 +1020,13 @@ code18  hex ad                       ; f565
 
         hex 8d 5d 00                 ; f588
 
-        jmp code19                   ; f58b: 4c af f5
+        jmp cod19                    ; f58b: 4c af f5
 +       lda ram7                     ; f58e: a5 07
         and #%00000001               ; f590: 29 01
-        beq code19                   ; f592: f0 1b
+        beq cod19                    ; f592: f0 1b
         lda #$01                     ; f594: a9 01
         jsr sub25                    ; f596: 20 ac f7
-        beq code19                   ; f599: f0 14
+        beq cod19                    ; f599: f0 14
         lda #$ff                     ; f59b: a9 ff
 
         hex 8d 57 00                 ; f59d
@@ -1051,20 +1047,20 @@ code18  hex ad                       ; f565
 
         hex 8d 5d 00                 ; f5ac
 
-code19  rts                          ; f5af: 60
+cod19   rts                          ; f5af: 60
 sub20   sta ram4                     ; f5b0: 85 04
         ldx #255                     ; f5b2: a2 ff
 -       inx                          ; f5b4: e8
-        lda array26,x                ; f5b5: bd 64 05
-        cmp array25,x                ; f5b8: dd 63 05
+        lda arr26,x                  ; f5b5: bd 64 05
+        cmp arr25,x                  ; f5b8: dd 63 05
         bne -                        ; f5bb: d0 f7
         stx ram54                    ; f5bd: 86 4b
         sta ram53                    ; f5bf: 85 4a
         inx                          ; f5c1: e8
 -       lda ram4                     ; f5c2: a5 04
         clc                          ; f5c4: 18
-        adc array25,x                ; f5c5: 7d 63 05
-        sta array25,x                ; f5c8: 9d 63 05
+        adc arr25,x                  ; f5c5: 7d 63 05
+        sta arr25,x                  ; f5c8: 9d 63 05
         inx                          ; f5cb: e8
         cpx #50                      ; f5cc: e0 32
         bne -                        ; f5ce: d0 f2
@@ -1160,18 +1156,18 @@ sub22   lda ram71                    ; f67b: a5 5f
         bne +                        ; f681: d0 03
         jsr sub19                    ; f683: 20 03 f5
 +       lda ram65                    ; f686: a5 58
-        beq code21                   ; f688: f0 32
+        beq cod21                    ; f688: f0 32
         ldy ram68                    ; f68a: a4 5c
         lda (ram64),y                ; f68c: b1 57
         cmp #$80                     ; f68e: c9 80
         bne +                        ; f690: d0 07
         lda #$00                     ; f692: a9 00
         sta ram65                    ; f694: 85 58
-        jmp code20                   ; f696: 4c a0 f6
+        jmp cod20                    ; f696: 4c a0 f6
 +       ldx #80                      ; f699: a2 50
         jsr sub23                    ; f69b: 20 7f f7
-        beq code21                   ; f69e: f0 1c
-code20  tya                          ; f6a0: 98
+        beq cod21                    ; f69e: f0 1c
+cod20   tya                          ; f6a0: 98
         and #%00001111               ; f6a1: 29 0f
         cmp #$07                     ; f6a3: c9 07
         bne +                        ; f6a5: d0 12
@@ -1185,38 +1181,38 @@ code20  tya                          ; f6a0: 98
         ldy #15                      ; f6b7: a0 0f
 +       iny                          ; f6b9: c8
         sty ram68                    ; f6ba: 84 5c
-code21  lda array3                   ; f6bc: a5 5a
-        beq code24                   ; f6be: f0 3e
+cod21   lda arr3                     ; f6bc: a5 5a
+        beq cod24                    ; f6be: f0 3e
         ldy ram67                    ; f6c0: a4 5b
         lda (ram66),y                ; f6c2: b1 59
         cmp #$80                     ; f6c4: c9 80
         bne +                        ; f6c6: d0 07
         lda #$00                     ; f6c8: a9 00
-        sta array3                   ; f6ca: 85 5a
-        jmp code22                   ; f6cc: 4c d6 f6
+        sta arr3                     ; f6ca: 85 5a
+        jmp cod22                    ; f6cc: 4c d6 f6
 +       ldx #81                      ; f6cf: a2 51
         jsr sub23                    ; f6d1: 20 7f f7
-        beq code24                   ; f6d4: f0 28
-code22  tya                          ; f6d6: 98
+        beq cod24                    ; f6d4: f0 28
+cod22   tya                          ; f6d6: 98
         and #%00001111               ; f6d7: 29 0f
         cmp #$07                     ; f6d9: c9 07
-        bne code23                   ; f6db: d0 1e
+        bne cod23                    ; f6db: d0 1e
         jsr sub29                    ; f6dd: 20 17 f8
         lda ram7                     ; f6e0: a5 07
         and ram70                    ; f6e2: 25 5e
-        beq code23                   ; f6e4: f0 15
+        beq cod23                    ; f6e4: f0 15
         lda ram70                    ; f6e6: a5 5e
         jsr sub25                    ; f6e8: 20 ac f7
-        beq code23                   ; f6eb: f0 0e
+        beq cod23                    ; f6eb: f0 0e
         lda ram70                    ; f6ed: a5 5e
         jsr sub24                    ; f6ef: 20 8f f7
         beq +                        ; f6f2: f0 05
         ldy #47                      ; f6f4: a0 2f
-        jmp code23                   ; f6f6: 4c fb f6
+        jmp cod23                    ; f6f6: 4c fb f6
 +       ldy #15                      ; f6f9: a0 0f
-code23  iny                          ; f6fb: c8
+cod23   iny                          ; f6fb: c8
         sty ram67                    ; f6fc: 84 5b
-code24  rts                          ; f6fe: 60
+cod24   rts                          ; f6fe: 60
 
         hex 01 01 02 02 03 03 04 04  ; f6ff
         hex 03 03 02 02 02 01 ff 80  ; f707
@@ -1249,39 +1245,39 @@ code24  rts                          ; f6fe: 60
         hex 04 03 03 02 02 02 01 ff  ; f736
         hex 80 ff ff fe fe           ; f73e
 
-        sbc data9,x                  ; f743: fd fd fc
+        sbc dat9,x                   ; f743: fd fd fc
 
         hex fc                       ; f746
 
-        sbc data14,x                 ; f747: fd fd fe
+        sbc dat14,x                  ; f747: fd fd fe
 
         hex fe                       ; f74a
 
-        inc array11,x                ; f74b: fe ff 01
+        inc arr11,x                  ; f74b: fe ff 01
 
         hex 80 fb fc fc              ; f74e
 
-        sbc data9,x                  ; f752: fd fd fc
+        sbc dat9,x                   ; f752: fd fd fc
 
         hex fb fc                    ; f755
 
-        sbc data14,x                 ; f757: fd fd fe
+        sbc dat14,x                  ; f757: fd fd fe
 
         hex fe                       ; f75a
 
-        inc array11,x                ; f75b: fe ff 01
+        inc arr11,x                  ; f75b: fe ff 01
 
         hex 80 fe                    ; f75e
 
-        sbc data8,x                  ; f760: fd fc fb
+        sbc dat8,x                   ; f760: fd fc fb
 
         hex fa fa fa fc              ; f763
 
-        sbc data14,x                 ; f767: fd fd fe
+        sbc dat14,x                  ; f767: fd fd fe
 
         hex fe                       ; f76a
 
-        inc array11,x                ; f76b: fe ff 01
+        inc arr11,x                  ; f76b: fe ff 01
 
         hex 80 fb fa                 ; f76e
 
@@ -1289,11 +1285,11 @@ code24  rts                          ; f6fe: 60
 
         hex fa fb fc                 ; f774
 
-        sbc data14,x                 ; f777: fd fd fe
+        sbc dat14,x                  ; f777: fd fd fe
 
         hex fe                       ; f77a
 
-        inc array11,x                ; f77b: fe ff 01
+        inc arr11,x                  ; f77b: fe ff 01
 
         hex 80                       ; f77e
 
@@ -1304,55 +1300,55 @@ sub23   pha                          ; f77f: 48
         dec ram71                    ; f783: c6 5f
         beq +                        ; f785: f0 01
         clc                          ; f787: 18
-+       adc array1,x                 ; f788: 75 00
-        sta array1,x                 ; f78a: 95 00
++       adc arr1,x                   ; f788: 75 00
+        sta arr1,x                   ; f78a: 95 00
         inc ram71                    ; f78c: e6 5f
         rts                          ; f78e: 60
 sub24   cmp #$04                     ; f78f: c9 04
         bne +                        ; f791: d0 09
         lda ram60                    ; f793: a5 53
         cmp #$02                     ; f795: c9 02
-        bne code25                   ; f797: d0 10
+        bne cod25                    ; f797: d0 10
         lda #$01                     ; f799: a9 01
         rts                          ; f79b: 60
 +       cmp #$08                     ; f79c: c9 08
-        bne code25                   ; f79e: d0 09
+        bne cod25                    ; f79e: d0 09
         lda ram60                    ; f7a0: a5 53
         cmp #$01                     ; f7a2: c9 01
-        bne code25                   ; f7a4: d0 03
+        bne cod25                    ; f7a4: d0 03
         lda #$01                     ; f7a6: a9 01
         rts                          ; f7a8: 60
-code25  lda #$00                     ; f7a9: a9 00
+cod25   lda #$00                     ; f7a9: a9 00
         rts                          ; f7ab: 60
 sub25   cmp #$01                     ; f7ac: c9 01
         bne +                        ; f7ae: d0 0b
         lda ram59                    ; f7b0: a5 52
         cmp #$07                     ; f7b2: c9 07
-        beq code27                   ; f7b4: f0 31
+        beq cod27                    ; f7b4: f0 31
         inc ram59                    ; f7b6: e6 52
-        jmp code26                   ; f7b8: 4c e4 f7
+        jmp cod26                    ; f7b8: 4c e4 f7
 +       cmp #$02                     ; f7bb: c9 02
         bne +                        ; f7bd: d0 09
         lda ram59                    ; f7bf: a5 52
-        beq code27                   ; f7c1: f0 24
+        beq cod27                    ; f7c1: f0 24
         dec ram59                    ; f7c3: c6 52
-        jmp code26                   ; f7c5: 4c e4 f7
+        jmp cod26                    ; f7c5: 4c e4 f7
 +       cmp #$04                     ; f7c8: c9 04
         bne +                        ; f7ca: d0 0b
         lda ram60                    ; f7cc: a5 53
         cmp #$04                     ; f7ce: c9 04
-        beq code27                   ; f7d0: f0 15
+        beq cod27                    ; f7d0: f0 15
         inc ram60                    ; f7d2: e6 53
-        jmp code26                   ; f7d4: 4c e4 f7
+        jmp cod26                    ; f7d4: 4c e4 f7
 +       cmp #$08                     ; f7d7: c9 08
-        bne code26                   ; f7d9: d0 09
+        bne cod26                    ; f7d9: d0 09
         lda ram60                    ; f7db: a5 53
-        beq code27                   ; f7dd: f0 08
+        beq cod27                    ; f7dd: f0 08
         dec ram60                    ; f7df: c6 53
-        jmp code26                   ; f7e1: 4c e4 f7
-code26  lda #$01                     ; f7e4: a9 01
+        jmp cod26                    ; f7e1: 4c e4 f7
+cod26   lda #$01                     ; f7e4: a9 01
         rts                          ; f7e6: 60
-code27  lda #$00                     ; f7e7: a9 00
+cod27   lda #$00                     ; f7e7: a9 00
         rts                          ; f7e9: 60
 sub26   lda #$aa                     ; f7ea: a9 aa
 sub27   sta ram17                    ; f7ec: 85 1a
@@ -1403,7 +1399,7 @@ sub29   tya                          ; f817: 98
         tay                          ; f841: a8
         rts                          ; f842: 60
 
-data3   hex 19 19 19 19 1a 19 19 19  ; f843
+dat3    hex 19 19 19 19 1a 19 19 19  ; f843
         hex 19 1a 19 19 19 19 1a 19  ; f84b
         hex 19 19                    ; f853
 
@@ -1414,10 +1410,10 @@ data3   hex 19 19 19 19 1a 19 19 19  ; f843
         cmp #$1a                     ; f85a: c9 1a
         bne +                        ; f85c: d0 05
         lda #$18                     ; f85e: a9 18
-        jmp code28                   ; f860: 4c 65 f8
+        jmp cod28                    ; f860: 4c 65 f8
 +       lda #$1a                     ; f863: a9 1a
 
-code28  hex ae                       ; f865
+cod28   hex ae                       ; f865
 
         adc $e000                    ; f866: 6d 00 e0
 
@@ -1430,7 +1426,7 @@ code28  hex ae                       ; f865
         sta ram125                   ; f874: 8d 79 04
         sta ram126                   ; f877: 8d 7a 04
         rts                          ; f87a: 60
-code29  lda ram75                    ; f87b: a5 63
+cod29   lda ram75                    ; f87b: a5 63
         asl a                        ; f87d: 0a
         asl a                        ; f87e: 0a
         asl a                        ; f87f: 0a
@@ -1468,23 +1464,23 @@ code29  lda ram75                    ; f87b: a5 63
         clc                          ; f8b2: 18
         adc #$02                     ; f8b3: 69 02
         tax                          ; f8b5: aa
-        lda array31,x                ; f8b6: bd 6b 06
+        lda arr31,x                  ; f8b6: bd 6b 06
         sec                          ; f8b9: 38
         sbc #$03                     ; f8ba: e9 03
         and #%00000001               ; f8bc: 29 01
-        beq code30                   ; f8be: f0 06
+        beq cod30                    ; f8be: f0 06
         lda ram76                    ; f8c0: a5 64
 +       cmp #$08                     ; f8c2: c9 08
-        bne code31                   ; f8c4: d0 11
-code30  lda ram77                    ; f8c6: a5 65
+        bne cod31                    ; f8c4: d0 11
+cod30   lda ram77                    ; f8c6: a5 65
         cmp #$02                     ; f8c8: c9 02
         beq +                        ; f8ca: f0 09
         lda #$00                     ; f8cc: a9 00
         sta ram76                    ; f8ce: 85 64
         inc ram77                    ; f8d0: e6 65
-        jmp code31                   ; f8d2: 4c d7 f8
+        jmp cod31                    ; f8d2: 4c d7 f8
 +       dec ram76                    ; f8d5: c6 64
-code31  jmp $fd0b                    ; f8d7: 4c 0b fd
+cod31   jmp $fd0b                    ; f8d7: 4c 0b fd
 sub30   lda ram7                     ; f8da: a5 07
         and #%10000000               ; f8dc: 29 80
         cmp ram78                    ; f8de: c5 66
@@ -1497,8 +1493,8 @@ sub30   lda ram7                     ; f8da: a5 07
 +       lda ram75                    ; f8ea: a5 63
         cmp #$02                     ; f8ec: c9 02
         bcs +                        ; f8ee: b0 03
-        jmp code29                   ; f8f0: 4c 7b f8
-+       jmp code38                   ; f8f3: 4c 78 f9
+        jmp cod29                    ; f8f0: 4c 7b f8
++       jmp cod38                    ; f8f3: 4c 78 f9
 sub31   lda ram7                     ; f8f6: a5 07
         and #%01000000               ; f8f8: 29 40
         cmp ram79                    ; f8fa: c5 67
@@ -1510,30 +1506,30 @@ sub31   lda ram7                     ; f8f6: a5 07
         rts                          ; f905: 60
 +       jmp +                        ; f906: 4c 09 f9
 +       lda ram76                    ; f909: a5 64
-        beq code34                   ; f90b: f0 25
+        beq cod34                    ; f90b: f0 25
         lda ram77                    ; f90d: a5 65
         cmp #$02                     ; f90f: c9 02
-        bne code33                   ; f911: d0 1a
+        bne cod33                    ; f911: d0 1a
         lda ram131                   ; f913: ad 7d 06
         sec                          ; f916: 38
         sbc #$03                     ; f917: e9 03
         and #%00000001               ; f919: 29 01
         bne +                        ; f91b: d0 04
         lda #$05                     ; f91d: a9 05
-        bne code32                   ; f91f: d0 02
+        bne cod32                    ; f91f: d0 02
 +       lda #$07                     ; f921: a9 07
-code32  cmp ram76                    ; f923: c5 64
-        bne code33                   ; f925: d0 06
+cod32   cmp ram76                    ; f923: c5 64
+        bne cod33                    ; f925: d0 06
         tax                          ; f927: aa
-        lda array32,x                ; f928: bd 7b 06
-        bne code35                   ; f92b: d0 0e
-code33  jsr sub45                    ; f92d: 20 f9 fb
-        bne code36                   ; f930: d0 26
-code34  lda ram76                    ; f932: a5 64
+        lda arr32,x                  ; f928: bd 7b 06
+        bne cod35                    ; f92b: d0 0e
+cod33   jsr sub45                    ; f92d: 20 f9 fb
+        bne cod36                    ; f930: d0 26
+cod34   lda ram76                    ; f932: a5 64
         ora ram77                    ; f934: 05 65
-        beq code36                   ; f936: f0 20
+        beq cod36                    ; f936: f0 20
         jsr sub32                    ; f938: 20 5b f9
-code35  lda ram77                    ; f93b: a5 65
+cod35   lda ram77                    ; f93b: a5 65
         asl a                        ; f93d: 0a
         asl a                        ; f93e: 0a
         clc                          ; f93f: 18
@@ -1550,21 +1546,21 @@ code35  lda ram77                    ; f93b: a5 65
         jsr sub3                     ; f950: 20 a8 f0
         lda #$00                     ; f953: a9 00
         jmp sub43                    ; f955: 4c d9 fb
-code36  jmp sub32                    ; f958: 4c 5b f9
+cod36   jmp sub32                    ; f958: 4c 5b f9
 sub32   dec ram76                    ; f95b: c6 64
         lda ram76                    ; f95d: a5 64
         cmp #$ff                     ; f95f: c9 ff
-        bne code37                   ; f961: d0 0f
+        bne cod37                    ; f961: d0 0f
         lda ram77                    ; f963: a5 65
         beq +                        ; f965: f0 09
         lda #$07                     ; f967: a9 07
         sta ram76                    ; f969: 85 64
         dec ram77                    ; f96b: c6 65
-        jmp code37                   ; f96d: 4c 72 f9
+        jmp cod37                    ; f96d: 4c 72 f9
 +       inc ram76                    ; f970: e6 64
-code37  jsr sub44                    ; f972: 20 e2 fb
+cod37   jsr sub44                    ; f972: 20 e2 fb
         jmp $fd0b                    ; f975: 4c 0b fd
-code38  lda ram75                    ; f978: a5 63
+cod38   lda ram75                    ; f978: a5 63
         sec                          ; f97a: 38
         sbc #$02                     ; f97b: e9 02
         sta ram77                    ; f97d: 85 65
@@ -1640,11 +1636,11 @@ sub33   lda ram77                    ; f992: a5 65
         ldx ram85                    ; f9ea: a6 6d
         lda ram62                    ; f9ec: a5 55
         clc                          ; f9ee: 18
-        adc data4,x                  ; f9ef: 7d 0d fa
+        adc dat4,x                   ; f9ef: 7d 0d fa
         sta ram29                    ; f9f2: 85 2d
         lda ram63                    ; f9f4: a5 56
         clc                          ; f9f6: 18
-        adc data5,x                  ; f9f7: 7d 1e fa
+        adc dat5,x                   ; f9f7: 7d 1e fa
         sta ram31                    ; f9fa: 85 2f
         inx                          ; f9fc: e8
         cpx #16                      ; f9fd: e0 10
@@ -1655,7 +1651,7 @@ sub33   lda ram77                    ; f992: a5 65
         jsr sub11                    ; fa07: 20 5b f2
         jmp $f857                    ; fa0a: 4c 57 f8
 
-data4   hex 00 04 07                 ; fa0d
+dat4    hex 00 04 07                 ; fa0d
 
         ora #%00001010               ; fa10: 09 0a
         ora #%00000111               ; fa12: 09 07
@@ -1666,9 +1662,9 @@ data4   hex 00 04 07                 ; fa0d
 
         hex f7                       ; fa1a
 
-        sbc array10,y                ; fa1b: f9 fc 00
-data5   inc array9,x                 ; fa1e: f6 f7
-        sbc array10,y                ; fa20: f9 fc 00
+        sbc arr10,y                  ; fa1b: f9 fc 00
+dat5    inc arr9,x                   ; fa1e: f6 f7
+        sbc arr10,y                  ; fa20: f9 fc 00
 
         hex 04 07                    ; fa23
 
@@ -1680,7 +1676,7 @@ data5   inc array9,x                 ; fa1e: f6 f7
         sbc $f6f7,y                  ; fa2c: f9 f7 f6
 sub34   lda ram86                    ; fa2f: a5 6e
         cmp ram87                    ; fa31: c5 6f
-        bcc code39                   ; fa33: 90 12
+        bcc cod39                    ; fa33: 90 12
         bne +                        ; fa35: d0 03
         lda #$00                     ; fa37: a9 00
         rts                          ; fa39: 60
@@ -1693,7 +1689,7 @@ sub34   lda ram86                    ; fa2f: a5 6e
         dex                          ; fa43: ca
         bne -                        ; fa44: d0 fb
         rts                          ; fa46: 60
-code39  lda ram87                    ; fa47: a5 6f
+cod39   lda ram87                    ; fa47: a5 6f
         sec                          ; fa49: 38
         sbc ram86                    ; fa4a: e5 6e
         ldx #3                       ; fa4c: a2 03
@@ -1706,11 +1702,11 @@ code39  lda ram87                    ; fa47: a5 6f
 sub35   eor #%10000000               ; fa56: 49 80
         cmp ram82                    ; fa58: c5 6a
         bcc +                        ; fa5a: 90 07
-        beq code40                   ; fa5c: f0 07
+        beq cod40                    ; fa5c: f0 07
         sbc #$01                     ; fa5e: e9 01
-        jmp code40                   ; fa60: 4c 65 fa
+        jmp cod40                    ; fa60: 4c 65 fa
 +       adc #$01                     ; fa63: 69 01
-code40  eor #%10000000               ; fa65: 49 80
+cod40   eor #%10000000               ; fa65: 49 80
         rts                          ; fa67: 60
 sub36   lda ram90                    ; fa68: a5 72
         beq +                        ; fa6a: f0 0e
@@ -1729,10 +1725,10 @@ sub36   lda ram90                    ; fa68: a5 72
         sta ram91                    ; fa85: 85 73
         rts                          ; fa87: 60
 
-data6   hex 00                       ; fa88
+dat6    hex 00                       ; fa88
 
         asl ram8                     ; fa89: 06 08
-        asl array1                   ; fa8b: 06 00
+        asl arr1                     ; fa8b: 06 00
 
         hex fa                       ; fa8d
 
@@ -1740,37 +1736,37 @@ data6   hex 00                       ; fa88
 
         hex fa 00 03 04 03 00        ; fa8f
 
-        sbc code54,x                 ; fa95: fd fc fd
-data7   sed                          ; fa98: f8
+        sbc cod54,x                  ; fa95: fd fc fd
+dat7    sed                          ; fa98: f8
 
         hex fa 00                    ; fa99
 
         asl ram8                     ; fa9b: 06 08
-        asl array1                   ; fa9d: 06 00
+        asl arr1                     ; fa9d: 06 00
 
         hex fa fc                    ; fa9f
 
-        sbc array16,x                ; faa1: fd 00 03
+        sbc arr16,x                  ; faa1: fd 00 03
 
         hex 04 03 00 fd              ; faa4
 
 sub37   ldy #0                       ; faa8: a0 00
--       lda data6,y                  ; faaa: b9 88 fa
+-       lda dat6,y                   ; faaa: b9 88 fa
         clc                          ; faad: 18
         adc ram88                    ; faae: 65 70
-        sta array22,x                ; fab0: 9d a3 04
-        lda data7,y                  ; fab3: b9 98 fa
+        sta arr22,x                  ; fab0: 9d a3 04
+        lda dat7,y                   ; fab3: b9 98 fa
         clc                          ; fab6: 18
         adc ram89                    ; fab7: 65 71
-        sta array23,x                ; fab9: 9d e3 04
-        lda data6,y                  ; fabc: b9 88 fa
-        sta array29,x                ; fabf: 9d 0b 06
-        lda data7,y                  ; fac2: b9 98 fa
-        sta array30,x                ; fac5: 9d 2b 06
+        sta arr23,x                  ; fab9: 9d e3 04
+        lda dat6,y                   ; fabc: b9 88 fa
+        sta arr29,x                  ; fabf: 9d 0b 06
+        lda dat7,y                   ; fac2: b9 98 fa
+        sta arr30,x                  ; fac5: 9d 2b 06
         lda #$01                     ; fac8: a9 01
-        sta array24,x                ; faca: 9d 23 05
+        sta arr24,x                  ; faca: 9d 23 05
         lda #$1a                     ; facd: a9 1a
-        sta array21,x                ; facf: 9d 63 04
+        sta arr21,x                  ; facf: 9d 63 04
         inx                          ; fad2: e8
         iny                          ; fad3: c8
         cpy #16                      ; fad4: c0 10
@@ -1791,88 +1787,88 @@ sub38   lda ram93                    ; faec: a5 75
         lda #$30                     ; faf4: a9 30
         sta noise_vol                ; faf6: 8d 0c 40
 +       lda ram91                    ; faf9: a5 73
-        beq code41                   ; fafb: f0 0d
+        beq cod41                    ; fafb: f0 0d
         ldx #32                      ; fafd: a2 20
         inc ram91                    ; faff: e6 73
         lda ram91                    ; fb01: a5 73
         cmp #$18                     ; fb03: c9 18
-        beq code42                   ; fb05: f0 15
+        beq cod42                    ; fb05: f0 15
         jsr sub39                    ; fb07: 20 2d fb
-code41  lda ram92                    ; fb0a: a5 74
+cod41   lda ram92                    ; fb0a: a5 74
         beq +                        ; fb0c: f0 0d
         ldx #48                      ; fb0e: a2 30
         inc ram92                    ; fb10: e6 74
         lda ram92                    ; fb12: a5 74
         cmp #$18                     ; fb14: c9 18
-        beq code43                   ; fb16: f0 0e
+        beq cod43                    ; fb16: f0 0e
         jsr sub39                    ; fb18: 20 2d fb
 +       rts                          ; fb1b: 60
-code42  lda #$00                     ; fb1c: a9 00
+cod42   lda #$00                     ; fb1c: a9 00
         sta ram91                    ; fb1e: 85 73
         jsr sub41                    ; fb20: 20 a4 fb
-        jmp code41                   ; fb23: 4c 0a fb
-code43  lda #$00                     ; fb26: a9 00
+        jmp cod41                    ; fb23: 4c 0a fb
+cod43   lda #$00                     ; fb26: a9 00
         sta ram92                    ; fb28: 85 74
         jmp sub41                    ; fb2a: 4c a4 fb
 sub39   and #%00000111               ; fb2d: 29 07
         sta ram4                     ; fb2f: 85 04
         ldy #16                      ; fb31: a0 10
-code44  lda array23,x                ; fb33: bd e3 04
+cod44   lda arr23,x                  ; fb33: bd e3 04
         cmp #$ff                     ; fb36: c9 ff
-        beq code48                   ; fb38: f0 59
-        lda array21,x                ; fb3a: bd 63 04
+        beq cod48                    ; fb38: f0 59
+        lda arr21,x                  ; fb3a: bd 63 04
         eor #%00000010               ; fb3d: 49 02
-        sta array21,x                ; fb3f: 9d 63 04
-        lda array29,x                ; fb42: bd 0b 06
+        sta arr21,x                  ; fb3f: 9d 63 04
+        lda arr29,x                  ; fb42: bd 0b 06
         bpl +                        ; fb45: 10 09
         clc                          ; fb47: 18
-        adc array22,x                ; fb48: 7d a3 04
-        bcs code46                   ; fb4b: b0 16
-        jmp code45                   ; fb4d: 4c 56 fb
+        adc arr22,x                  ; fb48: 7d a3 04
+        bcs cod46                    ; fb4b: b0 16
+        jmp cod45                    ; fb4d: 4c 56 fb
 +       clc                          ; fb50: 18
-        adc array22,x                ; fb51: 7d a3 04
-        bcc code46                   ; fb54: 90 0d
-code45  lda #$ff                     ; fb56: a9 ff
-        sta array23,x                ; fb58: 9d e3 04
+        adc arr22,x                  ; fb51: 7d a3 04
+        bcc cod46                    ; fb54: 90 0d
+cod45   lda #$ff                     ; fb56: a9 ff
+        sta arr23,x                  ; fb58: 9d e3 04
         lda #$00                     ; fb5b: a9 00
-        sta array21,x                ; fb5d: 9d 63 04
-        jmp code48                   ; fb60: 4c 93 fb
-code46  sta array22,x                ; fb63: 9d a3 04
-        lda array30,x                ; fb66: bd 2b 06
+        sta arr21,x                  ; fb5d: 9d 63 04
+        jmp cod48                    ; fb60: 4c 93 fb
+cod46   sta arr22,x                  ; fb63: 9d a3 04
+        lda arr30,x                  ; fb66: bd 2b 06
         bpl +                        ; fb69: 10 09
         clc                          ; fb6b: 18
-        adc array23,x                ; fb6c: 7d e3 04
-        bcs code47                   ; fb6f: b0 09
-        jmp code45                   ; fb71: 4c 56 fb
+        adc arr23,x                  ; fb6c: 7d e3 04
+        bcs cod47                    ; fb6f: b0 09
+        jmp cod45                    ; fb71: 4c 56 fb
 +       clc                          ; fb74: 18
-        adc array23,x                ; fb75: 7d e3 04
-        bcs code45                   ; fb78: b0 dc
-code47  sta array23,x                ; fb7a: 9d e3 04
+        adc arr23,x                  ; fb75: 7d e3 04
+        bcs cod45                    ; fb78: b0 dc
+cod47   sta arr23,x                  ; fb7a: 9d e3 04
         lda ram4                     ; fb7d: a5 04
-        bne code48                   ; fb7f: d0 12
-        lda array29,x                ; fb81: bd 0b 06
+        bne cod48                    ; fb7f: d0 12
+        lda arr29,x                  ; fb81: bd 0b 06
         jsr sub40                    ; fb84: 20 98 fb
-        sta array29,x                ; fb87: 9d 0b 06
-        lda array30,x                ; fb8a: bd 2b 06
+        sta arr29,x                  ; fb87: 9d 0b 06
+        lda arr30,x                  ; fb8a: bd 2b 06
         jsr sub40                    ; fb8d: 20 98 fb
-        sta array30,x                ; fb90: 9d 2b 06
-code48  inx                          ; fb93: e8
+        sta arr30,x                  ; fb90: 9d 2b 06
+cod48   inx                          ; fb93: e8
         dey                          ; fb94: 88
-        bne code44                   ; fb95: d0 9c
+        bne cod44                    ; fb95: d0 9c
         rts                          ; fb97: 60
-sub40   beq code49                   ; fb98: f0 09
+sub40   beq cod49                    ; fb98: f0 09
         bpl +                        ; fb9a: 10 04
         clc                          ; fb9c: 18
         adc #$01                     ; fb9d: 69 01
         rts                          ; fb9f: 60
 +       sec                          ; fba0: 38
         sbc #$01                     ; fba1: e9 01
-code49  rts                          ; fba3: 60
+cod49   rts                          ; fba3: 60
 sub41   ldy #16                      ; fba4: a0 10
 -       lda #$00                     ; fba6: a9 00
-        sta array21,x                ; fba8: 9d 63 04
+        sta arr21,x                  ; fba8: 9d 63 04
         lda #$ff                     ; fbab: a9 ff
-        sta array23,x                ; fbad: 9d e3 04
+        sta arr23,x                  ; fbad: 9d e3 04
         inx                          ; fbb0: e8
         dey                          ; fbb1: 88
         bne -                        ; fbb2: d0 f2
@@ -1906,21 +1902,21 @@ sub42   tya                          ; fbb5: 98
 sub43   pha                          ; fbd9: 48
         jsr sub46                    ; fbda: 20 00 fc
         pla                          ; fbdd: 68
-        sta array31,x                ; fbde: 9d 6b 06
+        sta arr31,x                  ; fbde: 9d 6b 06
         rts                          ; fbe1: 60
 sub44   jsr sub46                    ; fbe2: 20 00 fc
         lda ram76                    ; fbe5: a5 64
         beq +                        ; fbe7: f0 0f
-        lda array31,x                ; fbe9: bd 6b 06
+        lda arr31,x                  ; fbe9: bd 6b 06
         bne +                        ; fbec: d0 0a
 -       dex                          ; fbee: ca
-        lda array31,x                ; fbef: bd 6b 06
+        lda arr31,x                  ; fbef: bd 6b 06
         bne +                        ; fbf2: d0 04
         dec ram76                    ; fbf4: c6 64
         bne -                        ; fbf6: d0 f6
 +       rts                          ; fbf8: 60
 sub45   jsr sub46                    ; fbf9: 20 00 fc
-data8   lda array31,x                ; fbfc: bd 6b 06
+dat8    lda arr31,x                  ; fbfc: bd 6b 06
         rts                          ; fbff: 60
 sub46   lda ram77                    ; fc00: a5 65
         asl a                        ; fc02: 0a
@@ -2039,7 +2035,7 @@ sub48   lda ram100                   ; fc82: a5 7c
 sub49   sta ram17                    ; fcb8: 85 1a
         sty ram19                    ; fcba: 84 1f
         stx ram101                   ; fcbc: 86 7e
-code50  lda #$00                     ; fcbe: a9 00
+cod50   lda #$00                     ; fcbe: a9 00
 -       sta ram18                    ; fcc0: 85 1e
         jsr sub16                    ; fcc2: 20 b5 f3
         lda ram18                    ; fcc5: a5 1e
@@ -2049,7 +2045,7 @@ code50  lda #$00                     ; fcbe: a9 00
         bne -                        ; fccc: d0 f2
         inc ram19                    ; fcce: e6 1f
         dec ram101                   ; fcd0: c6 7e
-        bne code50                   ; fcd2: d0 ea
+        bne cod50                    ; fcd2: d0 ea
         rts                          ; fcd4: 60
 sub50   ldx ram102                   ; fcd5: a6 7f
         ldy ram103                   ; fcd7: a4 80
@@ -2063,17 +2059,17 @@ sub50   ldx ram102                   ; fcd5: a6 7f
         bne +                        ; fce5: d0 02
         ldx #0                       ; fce7: a2 00
 +       stx ram102                   ; fce9: 86 7f
-        lda data10,x                 ; fceb: bd 03 fd
-        sta array20                  ; fcee: 8d 43 04
+        lda dat10,x                  ; fceb: bd 03 fd
+        sta arr20                    ; fcee: 8d 43 04
         lda #$01                     ; fcf1: a9 01
-        sta array19                  ; fcf3: 8d 40 04
+        sta arr19                    ; fcf3: 8d 40 04
         lda #$3f                     ; fcf6: a9 3f
         sta ram121                   ; fcf8: 8d 41 04
         lda #$07                     ; fcfb: a9 07
-data9   sta ram122                   ; fcfd: 8d 42 04
+dat9    sta ram122                   ; fcfd: 8d 42 04
         jmp sub8                     ; fd00: 4c b9 f1
 
-data10  hex 21 2c 2b                 ; fd03
+dat10   hex 21 2c 2b                 ; fd03
 
         plp                          ; fd06: 28
 
@@ -2097,7 +2093,7 @@ data10  hex 21 2c 2b                 ; fd03
         lda #$55                     ; fd28: a9 55
         jmp sub27                    ; fd2a: 4c ec f7
 
-data11  hex af af af af af af af af  ; fd2d
+dat11   hex af af af af af af af af  ; fd2d
         hex fa fa fa fa fa fa fa fa  ; fd35
 
 sub51   lda ram106                   ; fd3d: a5 83
@@ -2109,12 +2105,12 @@ sub51   lda ram106                   ; fd3d: a5 83
         sta ram122                   ; fd4a: 8d 42 04
         ldy #31                      ; fd4d: a0 1f
 -       lda #$ff                     ; fd4f: a9 ff
-        sta array20,y                ; fd51: 99 43 04
-        sta array18,y                ; fd54: 99 20 04
+        sta arr20,y                  ; fd51: 99 43 04
+        sta arr18,y                  ; fd54: 99 20 04
         dey                          ; fd57: 88
         bpl -                        ; fd58: 10 f5
         lda #$20                     ; fd5a: a9 20
-        sta array19                  ; fd5c: 8d 40 04
+        sta arr19                    ; fd5c: 8d 40 04
         jsr sub8                     ; fd5f: 20 b9 f1
         lda ram105                   ; fd62: a5 82
         sec                          ; fd64: 38
@@ -2128,22 +2124,22 @@ sub51   lda ram106                   ; fd3d: a5 83
         lda #$23                     ; fd70: a9 23
         sta ram121                   ; fd72: 8d 41 04
         ldy #15                      ; fd75: a0 0f
--       lda data11,y                 ; fd77: b9 2d fd
-        sta array20,y                ; fd7a: 99 43 04
+-       lda dat11,y                  ; fd77: b9 2d fd
+        sta arr20,y                  ; fd7a: 99 43 04
         dey                          ; fd7d: 88
         bpl -                        ; fd7e: 10 f7
         lda #$10                     ; fd80: a9 10
-        sta array19                  ; fd82: 8d 40 04
+        sta arr19                    ; fd82: 8d 40 04
         jsr sub8                     ; fd85: 20 b9 f1
 +       rts                          ; fd88: 60
 sub52   lda ram7                     ; fd89: a5 07
         and #%00110000               ; fd8b: 29 30
-        bne code52                   ; fd8d: d0 05
+        bne cod52                    ; fd8d: d0 05
         lda #$01                     ; fd8f: a9 01
         sta ram107                   ; fd91: 85 84
-code51  rts                          ; fd93: 60
-code52  lda ram107                   ; fd94: a5 84
-        beq code51                   ; fd96: f0 fb
+cod51   rts                          ; fd93: 60
+cod52   lda ram107                   ; fd94: a5 84
+        beq cod51                    ; fd96: f0 fb
         lda #$00                     ; fd98: a9 00
         sta ppu_ctrl                 ; fd9a: 8d 00 20
         sta ppu_mask                 ; fd9d: 8d 01 20
@@ -2157,7 +2153,7 @@ code52  lda ram107                   ; fd94: a5 84
         sta ram106                   ; fdae: 85 83
         ldx #15                      ; fdb0: a2 0f
         lda #$ff                     ; fdb2: a9 ff
--       sta array8,x                 ; fdb4: 95 90
+-       sta arr8,x                   ; fdb4: 95 90
         dex                          ; fdb6: ca
         bpl -                        ; fdb7: 10 fb
         lda #$03                     ; fdb9: a9 03
@@ -2167,8 +2163,8 @@ code52  lda ram107                   ; fd94: a5 84
         lda #$02                     ; fdc1: a9 02
         sta ram110                   ; fdc3: 85 87
         lda #$71                     ; fdc5: a9 71
-        sta array4                   ; fdc7: 85 89
-code53  ldy #0                       ; fdc9: a0 00
+        sta arr4                     ; fdc7: 85 89
+cod53   ldy #0                       ; fdc9: a0 00
         sty ram107                   ; fdcb: 84 84
 -       lda (ram103),y               ; fdcd: b1 80
         beq +                        ; fdcf: f0 17
@@ -2191,71 +2187,71 @@ code53  ldy #0                       ; fdc9: a0 00
         cpy #8                       ; fdea: c0 08
         beq +                        ; fdec: f0 07
         cpy #6                       ; fdee: c0 06
-        beq code54                   ; fdf0: f0 0a
-        jmp code56                   ; fdf2: 4c 70 fe
+        beq cod54                    ; fdf0: f0 0a
+        jmp cod56                    ; fdf2: 4c 70 fe
 +       ldy #3                       ; fdf5: a0 03
         lda (ram103),y               ; fdf7: b1 80
-        jmp code55                   ; fdf9: 4c 00 fe
-code54  ldy #3                       ; fdfc: a0 03
+        jmp cod55                    ; fdf9: 4c 00 fe
+cod54   ldy #3                       ; fdfc: a0 03
         lda (ram103),y               ; fdfe: b1 80
-code55  ldy #0                       ; fe00: a0 00
+cod55   ldy #0                       ; fe00: a0 00
         lda (ram103),y               ; fe02: b1 80
         and #%00000111               ; fe04: 29 07
         ora ram107                   ; fe06: 05 84
         sta (ram103),y               ; fe08: 91 80
         ldx #0                       ; fe0a: a2 00
         stx ram107                   ; fe0c: 86 84
--       ldy data13,x                 ; fe0e: bc b6 fe
+-       ldy dat13,x                  ; fe0e: bc b6 fe
         lda (ram103),y               ; fe11: b1 80
         asl a                        ; fe13: 0a
         asl a                        ; fe14: 0a
         asl a                        ; fe15: 0a
         asl a                        ; fe16: 0a
         inx                          ; fe17: e8
-        ldy data13,x                 ; fe18: bc b6 fe
+        ldy dat13,x                  ; fe18: bc b6 fe
         ora (ram103),y               ; fe1b: 11 80
         ldy ram107                   ; fe1d: a4 84
-        sta array5,y                 ; fe1f: 99 8a 00
+        sta arr5,y                   ; fe1f: 99 8a 00
         inc ram107                   ; fe22: e6 84
         inx                          ; fe24: e8
         cpx #8                       ; fe25: e0 08
         bne -                        ; fe27: d0 e5
-        lda array5                   ; fe29: a5 8a
+        lda arr5                     ; fe29: a5 8a
         and #%01111111               ; fe2b: 29 7f
-        sta array5                   ; fe2d: 85 8a
-        lda array5                   ; fe2f: a5 8a
-        ldx array6                   ; fe31: a6 8b
-        cmp array8                   ; fe33: c5 90
+        sta arr5                     ; fe2d: 85 8a
+        lda arr5                     ; fe2f: a5 8a
+        ldx arr6                     ; fe31: a6 8b
+        cmp arr8                     ; fe33: c5 90
         bne +                        ; fe35: d0 04
         cpx ram112                   ; fe37: e4 91
-        beq code56                   ; fe39: f0 35
+        beq cod56                    ; fe39: f0 35
 +       cmp ram113                   ; fe3b: c5 94
         bne +                        ; fe3d: d0 04
         cpx ram114                   ; fe3f: e4 95
-        beq code56                   ; fe41: f0 2d
+        beq cod56                    ; fe41: f0 2d
 +       cmp ram115                   ; fe43: c5 98
         bne +                        ; fe45: d0 04
         cpx ram116                   ; fe47: e4 99
-        beq code56                   ; fe49: f0 25
+        beq cod56                    ; fe49: f0 25
 +       ldy #1                       ; fe4b: a0 01
--       lda array5,y                 ; fe4d: b9 8a 00
+-       lda arr5,y                   ; fe4d: b9 8a 00
         sta (ram105),y               ; fe50: 91 82
         dey                          ; fe52: 88
         bpl -                        ; fe53: 10 f8
         ldy #3                       ; fe55: a0 03
-        lda array4,y                 ; fe57: b9 89 00
+        lda arr4,y                   ; fe57: b9 89 00
         sta (ram105),y               ; fe5a: 91 82
         dey                          ; fe5c: 88
-        lda array6,y                 ; fe5d: b9 8b 00
+        lda arr6,y                   ; fe5d: b9 8b 00
         sta (ram105),y               ; fe60: 91 82
-        lda array4                   ; fe62: a5 89
+        lda arr4                     ; fe62: a5 89
         and ram109                   ; fe64: 25 86
         ldx ram108                   ; fe66: a6 85
         cpx #8                       ; fe68: e0 08
         bne +                        ; fe6a: d0 02
         ora ram110                   ; fe6c: 05 87
-+       sta array4                   ; fe6e: 85 89
-code56  sec                          ; fe70: 38
++       sta arr4                     ; fe6e: 85 89
+cod56   sec                          ; fe70: 38
         rol ram109                   ; fe71: 26 86
         asl ram110                   ; fe73: 06 87
         lda ram103                   ; fe75: a5 80
@@ -2272,31 +2268,31 @@ code56  sec                          ; fe70: 38
         inc ram106                   ; fe89: e6 83
 +       dec ram111                   ; fe8b: c6 88
         beq +                        ; fe8d: f0 03
-        jmp code53                   ; fe8f: 4c c9 fd
+        jmp cod53                    ; fe8f: 4c c9 fd
 +       ldx #24                      ; fe92: a2 18
--       lda data12,x                 ; fe94: bd 9f fe
-        sta array2,x                 ; fe97: 95 10
+-       lda dat12,x                  ; fe94: bd 9f fe
+        sta arr2,x                   ; fe97: 95 10
         dex                          ; fe99: ca
         bpl -                        ; fe9a: 10 f8
-        jmp array2                   ; fe9c: 4c 10 00
-data12  ldx #11                      ; fe9f: a2 0b
--       lda array8,x                 ; fea1: b5 90
+        jmp arr2                     ; fe9c: 4c 10 00
+dat12   ldx #11                      ; fe9f: a2 0b
+-       lda arr8,x                   ; fea1: b5 90
         sta $8001,x                  ; fea3: 9d 01 80
         dex                          ; fea6: ca
         bpl -                        ; fea7: 10 f8
-        lda array4                   ; fea9: a5 89
+        lda arr4                     ; fea9: a5 89
         sta $8000                    ; feab: 8d 00 80
         lda #$00                     ; feae: a9 00
         sta $8000                    ; feb0: 8d 00 80
         jmp ($fffc)                  ; feb3: 6c fc ff
 
-data13  hex 03                       ; feb6
+dat13   hex 03                       ; feb6
 
         ora ram2                     ; feb7: 05 02
 
         hex 04 01 00 07              ; feb9
 
-        asl array1                   ; febd: 06 00
+        asl arr1                     ; febd: 06 00
         rol a                        ; febf: 2a
 
         hex 00                       ; fec0
@@ -2304,15 +2300,15 @@ data13  hex 03                       ; feb6
         bmi +                        ; fec1: 30 00
 
 +       hex 6e 00                    ; fec3
-code57  hex 72 00 7c 00              ; fec5
+cod57   hex 72 00 7c 00              ; fec5
 
-        stx array1                   ; fec9: 86 00
+        stx arr1                     ; fec9: 86 00
         bcc +                        ; fecb: 90 00
 +       txs                          ; fecd: 9a
 
         hex 00                       ; fece
 
-        ldy array1                   ; fecf: a4 00
+        ldy arr1                     ; fecf: a4 00
         ldx $b800                    ; fed1: ae 00 b8
 
         hex 00 c2 00                 ; fed4
@@ -2345,7 +2341,7 @@ code57  hex 72 00 7c 00              ; fec5
 
         php                          ; fefc: 08
 
-data14  hex 00 00 52 32              ; fefd
+dat14   hex 00 00 52 32              ; fefd
 
         cpy $965d                    ; ff01: cc 5d 96
         bit ram130                   ; ff04: 2c e4 05
@@ -2362,11 +2358,11 @@ data14  hex 00 00 52 32              ; fefd
 
         hex 00                       ; ff10
 
-        eor array3,x                 ; ff11: 55 5a
+        eor arr3,x                   ; ff11: 55 5a
         ldy #64                      ; ff13: a0 40
         asl ram2                     ; ff15: 06 02
         ldy #64                      ; ff17: a0 40
-        bvc code57                   ; ff19: 50 aa
+        bvc cod57                    ; ff19: 50 aa
         ldy #64                      ; ff1b: a0 40
 
         hex 0c                       ; ff1d
@@ -2377,7 +2373,7 @@ data14  hex 00 00 52 32              ; fefd
 
         hex 0c                       ; ff22
 
-        cpy array1                   ; ff23: c4 00
+        cpy arr1                     ; ff23: c4 00
         cpy ram9                     ; ff25: c4 0c
         cpy ram47                    ; ff27: c4 40
         dey                          ; ff29: 88
@@ -2413,7 +2409,7 @@ data14  hex 00 00 52 32              ; fefd
 
         hex 00                       ; ff4b
 
-        sty array17                  ; ff4c: 8c 00 04
+        sty arr17                    ; ff4c: 8c 00 04
 
         hex 04                       ; ff4f
 
@@ -2546,19 +2542,19 @@ data14  hex 00 00 52 32              ; fefd
         hex 3b 71 0e                 ; ffdf
 +       hex ff                       ; ffe2
 
-        bvc code58                   ; ffe3: 50 0c
+        bvc cod58                    ; ffe3: 50 0c
         cpy ram3                     ; ffe5: c4 03
 
         hex 3b 71 0e ff              ; ffe7
 
-        bvc code59                   ; ffeb: 50 0c
-        cpy array1                   ; ffed: c4 00
+        bvc cod59                    ; ffeb: 50 0c
+        cpy arr1                     ; ffed: c4 00
 
         hex 00                       ; ffef
-data15  hex 00                       ; fff0
-code58  hex 00 00 00 00 00 00 00 00  ; fff1
+dat15   hex 00                       ; fff0
+cod58   hex 00 00 00 00 00 00 00 00  ; fff1
 
-code59  tax                          ; fff9: aa
+cod59   tax                          ; fff9: aa
 
         hex 7d                       ; fffa
 

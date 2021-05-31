@@ -244,7 +244,13 @@ HARDWARE_REGISTERS = {
     ACME_DATA,   # data: none of the above
 ) = range(4)
 
-# instructions and addressing modes that can jump to an address
-JUMP_INSTRUCTIONS = set(("jmp", "jsr", "bne", "beq", "bpl", "bmi", "bcc", "bcs", "bvc", "bvs"))
-JUMP_ADDRESSING_MODES = set((AM_AB, AM_R))
+# instructions and addressing modes that can write to an address
+# (used for address blocklist, so no AM_IX or AM_IY)
+# note: it's questionable to have indexed modes here
+WRITE_INSTRUCTIONS = {"sta", "stx", "sty", "dec", "inc", "asl", "lsr", "rol", "ror"}
+WRITE_ADDRESSING_MODES = {AM_Z, AM_ZX, AM_ZY, AM_AB, AM_ABX, AM_ABY}
 
+# instructions and addressing modes that can jump to an address
+# (used for address blocklist, so no AM_I)
+JUMP_INSTRUCTIONS = {"jmp", "jsr", "bne", "beq", "bpl", "bmi", "bcc", "bcs", "bvc", "bvs"}
+JUMP_ADDRESSING_MODES = {AM_AB, AM_R}
