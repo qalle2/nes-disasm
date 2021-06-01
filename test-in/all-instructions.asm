@@ -1,5 +1,5 @@
-    ; this is a manually-written test file; assemble with ASM6 into all-instructions.prg
-    ; note: some instructions have been written as bytes to prevent ASM6 from optimizing them
+; this is a manually-written test file; assemble with ASM6 into all-instructions.prg
+; note: some instructions have been written as bytes to prevent ASM6 from optimizing them
 
     org $fe00
 
