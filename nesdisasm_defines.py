@@ -8,7 +8,7 @@
     AM_ZY,   # zeroPage,y
     AM_IX,   # (indirect,x)
     AM_IY,   # (indirect),y
-    AM_R,    # relative
+    AM_R,    # program counter relative
     AM_AB,   # absolute
     AM_ABX,  # absolute,x
     AM_ABY,  # absolute,y
@@ -17,19 +17,19 @@
 
 # addressing mode: (operand size, operand format)
 ADDRESSING_MODES = {
-    AM_IMP: (0, "{}"),      # implied
-    AM_AC:  (0, "a{}"),     # accumulator
-    AM_IMM: (1, "#{}"),     # immediate
-    AM_Z:   (1, "{}"),      # zeroPage
-    AM_ZX:  (1, "{},x"),    # zeroPage,x
-    AM_ZY:  (1, "{},y"),    # zeroPage,y
-    AM_IX:  (1, "({},x)"),  # (indirect,x)
-    AM_IY:  (1, "({}),y"),  # (indirect),y
-    AM_R:   (1, "{}"),      # program counter relative
-    AM_AB:  (2, "{}"),      # absolute
-    AM_ABX: (2, "{},x"),    # absolute,x
-    AM_ABY: (2, "{},y"),    # absolute,y
-    AM_I:   (2, "({})"),    # (indirect)
+    AM_IMP: (0, "{}"),
+    AM_AC:  (0, "a{}"),
+    AM_IMM: (1, "#{}"),
+    AM_Z:   (1, "{}"),
+    AM_ZX:  (1, "{},x"),
+    AM_ZY:  (1, "{},y"),
+    AM_IX:  (1, "({},x)"),
+    AM_IY:  (1, "({}),y"),
+    AM_R:   (1, "{}"),
+    AM_AB:  (2, "{}"),
+    AM_ABX: (2, "{},x"),
+    AM_ABY: (2, "{},y"),
+    AM_I:   (2, "({})"),
 }
 
 # opcode: (mnemonic, addressing mode)

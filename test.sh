@@ -11,7 +11,7 @@ rm -f test-out/*.prg
 #   31/51/71/d1/f1          = AND/EOR/ADC/CMP/SBC             (indirect),y
 
 echo "=== all-instructions.prg ==="
-python3 nesdisasm.py test-in/all-instructions.prg > test-out/all-instructions.asm
+python3 nesdisasm.py --no-abs-zp --no-abs-zpx --no-abs-zpy --no-opcodes 00 test-in/all-instructions.prg > test-out/all-instructions.asm
 asm6 test-out/all-instructions.asm test-out/all-instructions.prg
 diff -q test-in/all-instructions.prg test-out/all-instructions.prg
 echo

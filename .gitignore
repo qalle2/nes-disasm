@@ -1,6 +1,5 @@
-*.asm
+test-out/
 *.bin
 *.nes
 *.prg
 *.pyc
-
