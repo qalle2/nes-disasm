@@ -3,8 +3,17 @@
 import argparse, math, os, sys
 from nesdisasm_defines import *
 
+def list_opcodes():
+    # list supported opcodes
+    for opcode in sorted(OPCODES):
+        (mnemonic, addrMode) = OPCODES[opcode]
+        (operandSize, operandFormat) = ADDRESSING_MODES[addrMode]
+        addrModeStr = operandFormat.format(operandSize * "nn")
+        print(f'{opcode},"{mnemonic}","{addrModeStr}"')
+
 def parse_arguments():
     # parse command line arguments using argparse
+    # note: indentation 0 forbidden as "0s" is an invalid string format code
 
     parser = argparse.ArgumentParser(description="An NES (6502) disassembler.")
 
@@ -21,53 +30,54 @@ def parse_arguments():
         help="How many data bytes to print per 'hex ...' line (1 to 100, default=8)."
     )
     parser.add_argument(
-        "--no-abs-zp", action="store_true",
+        "--no-zp-ab", action="store_true",
         help="Assume the game never accesses zero page using absolute addressing if the "
         "instruction also supports zeroPage addressing."
     )
     parser.add_argument(
-        "--no-abs-zpx", action="store_true",
+        "--no-zp-abx", action="store_true",
         help="Assume the game never accesses zero page using absolute,x addressing if the "
         "instruction also supports zeroPage,x addressing."
     )
     parser.add_argument(
-        "--no-abs-zpy", action="store_true",
+        "--no-zp-aby", action="store_true",
         help="Assume the game never accesses zero page using absolute,y addressing if the "
         "instruction also supports zeroPage,y addressing."
     )
     parser.add_argument(
         "--no-opcodes", type=str, default="",
-        help="Assume the game never uses these opcodes. Zero or more opcodes separated by commas. "
-        "Each opcode is a hexadecimal integer (00 to ff). Examples: 00 = BRK, 01 = ORA "
+        help="Assume the game never executes these opcodes. Zero or more opcodes separated by "
+        "commas. Each opcode is an 8-bit hexadecimal integer. E.g. '00,01' = BRK, ORA "
         "(indirect,x)."
     )
     parser.add_argument(
         "--no-access", type=str, default="",
-        help="Assume the game never accesses (reads/writes/executes) these addresses. Zero or more "
-        "ranges separated by commas. Each range consists of two hexadecimal addresses (0000 to "
-        "ffff) separated by a hyphen. Examples: 0800-1fff = mirrors of RAM, 2008-3fff = mirrors "
-        "of PPU registers, 4020-5fff = beginning of cartridge space, 6000-7fff = PRG RAM."
+        help="Assume the game never reads/writes/executes these addresses. Zero or more ranges "
+        "ranges separated by commas. A range is two 16-bit hexadecimal addresses separated by a "
+        "hyphen. E.g. '0800-1fff,2008-3fff,4020-5fff,6000-7fff' = mirrors of RAM, mirrors of PPU "
+        "registers, beginning of cartridge space, PRG RAM."
     )
     parser.add_argument(
         "--no-write", type=str, default="",
-        help="Assume the game never writes these addresses (via "
-        "STA/STX/STY/DEC/INC/ASL/LSR/ROL/ROR). Same syntax as in --no-access. "
-        "Example: 8000-ffff = PRG ROM."
+        help="Assume the game never writes these addresses. Same syntax as in --no-access. E.g. "
+        "'8000-ffff' = PRG ROM."
     )
     parser.add_argument(
         "--no-execute", type=str, default="",
-        help="Assume the game never executes these addresses (via JMP, JSR or a branch "
-        "instruction). Same syntax as in --no-access. "
-        "Example: 2000-401f = memory-mapped registers."
+        help="Assume the game never executes these addresses. Same syntax as in --no-access. E.g. "
+        "'2000-401f' = memory-mapped registers."
     )
     parser.add_argument(
         "--unaccessed-as-data", action="store_true",
-        help="Output unaccessed bytes as data instead of trying to disassemble them. "
-        "(Note: without a CDL file, all bytes will be output as data.)"
+        help="Output unaccessed bytes as data instead of trying to disassemble them."
     )
     parser.add_argument(
         "--no-anonymous-labels", action="store_true",
-        help="Do not use anonymous PRG ROM labels ('+' and '-')."
+        help="Always use named labels instead of anonymous labels ('+' and '-')."
+    )
+    parser.add_argument(
+        "--list-opcodes", action="store_true",
+        help="List supported opcodes in CSV format and exit. (Note: specify a dummy input file.)"
     )
     parser.add_argument(
         "input_file",
@@ -76,16 +86,54 @@ def parse_arguments():
 
     args = parser.parse_args()
 
+    if args.list_opcodes:
+        list_opcodes()
+        exit()
+
     if not 1 <= args.indentation <= 100:
         sys.exit("Invalid indentation argument.")
     if not 1 <= args.data_bytes_per_line <= 100:
         sys.exit("Invalid 'data bytes per line' argument.")
     if not os.path.isfile(args.input_file):
-        sys.exit("Input file not found.")
+        sys.exit("PRG file not found.")
     if args.cdl_file and not os.path.isfile(args.cdl_file):
         sys.exit("CDL file not found.")
 
     return args
+
+def read_cdl_file(handle, prgSize):
+    # read an FCEUX CDL file; generate: (range_of_PRG_addresses, chunk_type)
+
+    if handle.seek(0, 2) < prgSize:
+        sys.exit("CDL file must be at least as large as PRG ROM file.")
+
+    handle.seek(0)
+    cdlData = handle.read(prgSize)
+
+    chunkStart = None           # start address of current chunk
+    chunkType = CDL_UNACCESSED  # type of current chunk
+
+    for (pos, byte) in enumerate(cdlData):
+        if byte & 0x1:
+            byteType = CDL_CODE
+        elif byte & 0x02:
+            byteType = CDL_DATA
+        else:
+            byteType = CDL_UNACCESSED
+
+        if byteType != chunkType:
+            if chunkType != CDL_UNACCESSED:
+                # end current chunk
+                yield (range(chunkStart, pos), chunkType)
+                chunkType = CDL_UNACCESSED
+            if byteType != CDL_UNACCESSED:
+                # start new chunk
+                chunkStart = pos
+                chunkType = byteType
+
+    if chunkType != CDL_UNACCESSED:
+        # end last chunk
+        yield (range(chunkStart, prgSize), chunkType)
 
 # --- get_instruction_address_ranges() and related -------------------------------------------------
 
@@ -129,38 +177,46 @@ def instruction_allowed_at_address(addrRange, cdlCodeRanges, cdlDataRanges, args
     return any(
         addrRange.start in rng and addrRange.stop - 1 in rng
         for rng in cdlCodeRanges
-    ) or (
-        (not args.unaccessed_as_data) \
-        and not any(
-            any(addr in rng for rng in cdlCodeRanges)
-            or any(addr in rng for rng in cdlDataRanges)
-            for addr in addrRange
-        )
+    ) or not args.unaccessed_as_data and not any(
+        any(addr in r for r in cdlCodeRanges) or any(addr in r for r in cdlDataRanges)
+        for addr in addrRange
     )
+
+def decode_16bit_address(byte1, byte2):
+    # decode little-endian 16-bit integer
+    assert 0x00 <= byte1 <= 0xff
+    assert 0x00 <= byte2 <= 0xff
+    return byte1 | (byte2 << 8)
+
+def decode_relative_address(pc, offset):
+    # decode program counter relative address (note: result may be outside 0x0000-0xffff)
+    assert 0x0000 <= pc <= 0xffff
+    assert 0x00 <= offset <= 0xff
+    return pc + 2 - (offset & 0x80) + (offset & 0x7f)
 
 def get_instruction_address_ranges(handle, cdlData, args):
     # generate PRG address ranges of instructions from a PRG file
     # cdlData: {address_range: chunk_type, ...}, yield: one range per call
 
-    cdlCodeRanges = set(rng for rng in cdlData if cdlData[rng] == CDL_CODE)
-    cdlDataRanges = set(rng for rng in cdlData if cdlData[rng] == CDL_DATA)
+    cdlCodeRanges = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
+    cdlDataRanges = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
     noOpcodes = set(parse_opcodes(args.no_opcodes))
-    noAccess = set(parse_address_ranges(args.no_access))
-    noWrite = set(parse_address_ranges(args.no_write))
+    noAccess  = set(parse_address_ranges(args.no_access))
+    noWrite   = set(parse_address_ranges(args.no_write))
     noExecute = set(parse_address_ranges(args.no_execute))
 
     prgSize = handle.seek(0, 2)
     origin = 0x10000 - prgSize
 
     handle.seek(0)
-    PRGData = handle.read()
+    prgData = handle.read()
 
     codeStart = None  # start of current code chunk
     pos = 0  # position in PRG data
 
     # quite similar to main loops elsewhere
     while pos < prgSize:
-        opcode = PRGData[pos]
+        opcode = prgData[pos]
 
         isInstruction = True  # does remaining PRG ROM start with an instruction?
 
@@ -181,23 +237,23 @@ def get_instruction_address_ranges(handle, cdlData, args):
                     # get address from operand
                     if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
                         # 1-byte address
-                        addr = PRGData[pos+1]
+                        addr = prgData[pos+1]
                         if addrMode == AM_R:
-                            addr = pos + 2 - (addr & 0x80) + (addr & 0x7f)
+                            addr = decode_relative_address(pos, addr)
                             if 0 <= addr < prgSize:
                                 addr += origin
                             else:
                                 isInstruction = False  # target outside PRG ROM
                     else:
                         # 2-byte address
-                        addr = PRGData[pos+1] | (PRGData[pos+2] << 8)
+                        addr = decode_16bit_address(prgData[pos+1], prgData[pos+2])
 
                     if isInstruction and (
                         # uses absolute/absolute,x/absolute,y instead of zp/zp,x/zp,y?
                         addr <= 0xff and (
-                            args.no_abs_zp and addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
-                            or args.no_abs_zpx and addrMode == AM_ABX
-                            or args.no_abs_zpy and addrMode == AM_ABY and mnemonic == "ldx"
+                            args.no_zp_ab and addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
+                            or args.no_zp_abx and addrMode == AM_ABX
+                            or args.no_zp_aby and addrMode == AM_ABY and mnemonic == "ldx"
                         )
                         # accesses an excluded address?
                         or any(addr in r for r in noAccess)
@@ -275,14 +331,14 @@ def get_label_stats(handle, instrAddrRanges, args):
     origin = 0x10000 - prgSize
 
     handle.seek(0)
-    PRGData = handle.read()
+    prgData = handle.read()
 
     pos = 0  # position in PRG ROM
 
     for pos in get_instruction_addresses(handle, instrAddrRanges):
         instrAddresses.add(pos)
 
-        opcode = PRGData[pos]
+        opcode = prgData[pos]
         (mnemonic, addrMode) = OPCODES[opcode]
 
         if addrMode not in (AM_IMP, AM_AC, AM_IMM):
@@ -290,12 +346,12 @@ def get_label_stats(handle, instrAddrRanges, args):
             # decode operand
             if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
                 # 1-byte address
-                addr = PRGData[pos+1]
+                addr = prgData[pos+1]
                 if addrMode == AM_R:
-                    addr = origin + pos + 2 - (addr & 0x80) + (addr & 0x7f)
+                    addr = decode_relative_address(origin + pos, addr)
             else:
                 # 2-byte address
-                addr = PRGData[pos+1] | (PRGData[pos+2] << 8)
+                addr = decode_16bit_address(prgData[pos+1], prgData[pos+2])
 
             # remember access method, first reference and last reference
             accessMethod = get_access_method(mnemonic, addrMode)
@@ -305,7 +361,7 @@ def get_label_stats(handle, instrAddrRanges, args):
                 labelStats[addr][1] = min(labelStats[addr][1], referrer)
                 labelStats[addr][2] = max(labelStats[addr][2], referrer)
             else:
-                labelStats[addr] = [set((accessMethod,)), referrer, referrer]
+                labelStats[addr] = [{accessMethod,}, referrer, referrer]
 
     # only keep labels that refer to:
     # - outside of PRG ROM
@@ -352,8 +408,8 @@ def get_label_names(handle, instrAddrRanges, args):
 
     labelStats = get_label_stats(handle, instrAddrRanges, args)
 
-    # RAM
-    RAMLabels = set(addr for addr in labelStats if addr <= 0x1fff)
+    # 0x0000-0x1fff
+    RAMLabels = {addr for addr in labelStats if addr <= 0x1fff}
     # accessed at least once as an array
     addresses = sorted(addr for addr in RAMLabels if ACME_ARRAY in labelStats[addr][0])
     yield from ((addr, f"arr{i+1}") for (i, addr) in enumerate(addresses))
@@ -362,11 +418,11 @@ def get_label_names(handle, instrAddrRanges, args):
     yield from ((addr, f"ram{i+1}") for (i, addr) in enumerate(addresses))
     del RAMLabels
 
-    # between RAM and PRG ROM
+    # 0x2000-0x7fff
     # hardware registers
     addresses = sorted(set(labelStats) & set(HARDWARE_REGISTERS))
     yield from ((addr, HARDWARE_REGISTERS[addr]) for addr in addresses)
-    # 0x2000-0x7fff excluding hardware registers
+    # other
     addresses = sorted(
         addr for addr in set(labelStats) - set(HARDWARE_REGISTERS) if 0x2000 <= addr <= 0x7fff
     )
@@ -377,10 +433,9 @@ def get_label_names(handle, instrAddrRanges, args):
     anonLabelsBackwards = set()  # "-"
     if not args.no_anonymous_labels:
         # addresses only referred to by branches or direct jumps
-        prgCodeLabels = set(
-            addr for addr in labelStats
-            if addr >= 0x8000 and labelStats[addr][0] == set((ACME_CODE,))
-        )
+        prgCodeLabels = {
+            addr for addr in labelStats if addr >= 0x8000 and labelStats[addr][0] == {ACME_CODE,}
+        }
         # look for "+" labels, then "-" labels, then "+" labels again
         anonLabelsForwards.update(
             get_anon_labels_forwards(prgCodeLabels, labelStats, anonLabelsBackwards)
@@ -396,25 +451,24 @@ def get_label_names(handle, instrAddrRanges, args):
         yield from ((addr, "-") for addr in anonLabelsBackwards)
 
     # named PRG ROM labels
-    namedPRGLabels = set(addr for addr in set(labelStats) if addr >= 0x8000) \
-    - anonLabelsForwards - anonLabelsBackwards
+    namedPrgLabels = \
+    {addr for addr in set(labelStats) if addr >= 0x8000} - anonLabelsForwards - anonLabelsBackwards
     del anonLabelsForwards, anonLabelsBackwards
     # subs
     addresses = sorted(
-        addr for addr in namedPRGLabels
-        if ACME_SUB in labelStats[addr][0]
+        addr for addr in namedPrgLabels if ACME_SUB in labelStats[addr][0]
     )
     yield from ((addr, f"sub{i+1}") for (i, addr) in enumerate(addresses))
     # other code
     addresses = sorted(
-        addr for addr in namedPRGLabels
+        addr for addr in namedPrgLabels
         if ACME_SUB not in labelStats[addr][0]
         and ACME_CODE in labelStats[addr][0]
     )
     yield from ((addr, f"cod{i+1}") for (i, addr) in enumerate(addresses))
     # data (almost always arrays)
     addresses = sorted(
-        addr for addr in namedPRGLabels
+        addr for addr in namedPrgLabels
         if ACME_SUB not in labelStats[addr][0]
         and ACME_CODE not in labelStats[addr][0]
     )
@@ -422,7 +476,7 @@ def get_label_names(handle, instrAddrRanges, args):
 
 # --- disassemble() and related -------------------------------------------------------------------
 
-def print_CDL_stats(cdlData, prgSize):
+def print_cdl_stats(cdlData, prgSize):
     if not cdlData:
         print("; No CDL file was used.")
         return
@@ -433,23 +487,12 @@ def print_CDL_stats(cdlData, prgSize):
     print(f"; CDL file - data        bytes: {dataByteCnt}")
     print(f"; CDL file - unaccessed  bytes: {unaccByteCnt}")
 
-def format_literal(n, *, bits=8, base=16):
+def format_literal(n, bits=8):
     # format an ASM6 integer literal
-    # n: integer, bits: 8/16, base: 2/10/16
+    assert bits in (8, 16) and 0 <= n < 2 ** bits
+    return f"${n:02x}" if bits == 8 else f"${n:04x}"
 
-    if bits == 16:
-        assert 0 <= n <= 0xffff
-        return f"${n:04x}"
-    else:
-        assert 0 <= n <= 0xff
-        if base == 16:
-            return f"${n:02x}"
-        elif base == 10:
-            return f"{n}"
-        else:
-            return f"%{n:08b}"
-
-def print_data_line(label, bytes_, origin, PRGAddr, cdlDataRanges, args):
+def print_data_line(label, bytes_, origin, prgAddr, cdlDataRanges, args):
     # print data line (as 2 lines if label is too long)
 
     if len(label) > args.indentation - 1:
@@ -457,16 +500,16 @@ def print_data_line(label, bytes_, origin, PRGAddr, cdlDataRanges, args):
         label = ""
 
     maxInstructionWidth = args.data_bytes_per_line * 3 + 5
-    isUnaccessed = cdlDataRanges and not any(PRGAddr in rng for rng in cdlDataRanges)
+    isUnaccessed = cdlDataRanges and not any(prgAddr in rng for rng in cdlDataRanges)
 
     print(
         format(label, f"{args.indentation}s")
         + format("hex " + " ".join(f"{b:02x}" for b in bytes_), f"{maxInstructionWidth}s")
-        + f"; {origin+PRGAddr:04x}"
+        + f"; {origin+prgAddr:04x}"
         + (11 * " " + "(unaccessed)" if isUnaccessed else "")
     )
 
-def print_data_lines(data, origin, PRGAddr, labels, cdlDataRanges, args):
+def print_data_lines(data, origin, prgAddr, labels, cdlDataRanges, args):
     # print lines with data bytes
     # labels: dict
 
@@ -474,12 +517,12 @@ def print_data_lines(data, origin, PRGAddr, labels, cdlDataRanges, args):
     prevLabel = ""
 
     for (offset, byte) in enumerate(data):
-        label = labels.get(origin + PRGAddr + offset, "")
+        label = labels.get(origin + prgAddr + offset, "")
         if label or offset - startOffset == args.data_bytes_per_line:
             # a new block starts; print old one, if any
             if offset > startOffset:
                 print_data_line(
-                    prevLabel, data[startOffset:offset], origin, PRGAddr + startOffset,
+                    prevLabel, data[startOffset:offset], origin, prgAddr + startOffset,
                     cdlDataRanges, args
                 )
                 startOffset = offset
@@ -488,10 +531,10 @@ def print_data_lines(data, origin, PRGAddr, labels, cdlDataRanges, args):
     # print last block, if any
     if len(data) > startOffset:
         print_data_line(
-            prevLabel, data[startOffset:], origin, PRGAddr + startOffset, cdlDataRanges, args
+            prevLabel, data[startOffset:], origin, prgAddr + startOffset, cdlDataRanges, args
         )
 
-def format_operand_value(instrBytes, PRGAddr, labels):
+def format_operand_value(instrBytes, prgAddr, labels):
     # instrBytes: 1-3 bytes
 
     (mnemonic, addrMode) = OPCODES[instrBytes[0]]
@@ -499,23 +542,19 @@ def format_operand_value(instrBytes, PRGAddr, labels):
     if addrMode in (AM_IMP, AM_AC):
         return ""
     if addrMode == AM_IMM:
-        if mnemonic in ("and", "eor", "ora"):
-            return format_literal(instrBytes[1], base=2)
-        if mnemonic in ("ldx", "ldy", "cpx", "cpy"):
-            return format_literal(instrBytes[1], base=10)
         return format_literal(instrBytes[1])
     if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
         # 1-byte address
         addr = instrBytes[1]
         if addrMode == AM_R:
-            addr = PRGAddr + 2 - (addr & 0x80) + (addr & 0x7f)
+            addr = decode_relative_address(prgAddr, addr)
             bits = 16
         else:
             bits = 8
-        return labels.get(addr, format_literal(addr, bits=bits))
+        return labels.get(addr, format_literal(addr, bits))
     # 2-byte address
-    addr = instrBytes[1] | (instrBytes[2] << 8)
-    return labels.get(addr, format_literal(addr, bits=16))
+    addr = decode_16bit_address(instrBytes[1], instrBytes[2])
+    return labels.get(addr, format_literal(addr, 16))
 
 def print_instruction(label, cpuAddr, instrBytes, operand, isUnaccessed, args):
     # print instruction line (as 2 lines if label is too long)
@@ -557,44 +596,33 @@ def disassemble(handle, cdlData, args):
     print(f"; Labels - total    : {len(labels)}")
     print(f"; Labels - named    : {len(labels)-anonLabelCnt}")
     print(f"; Labels - anonymous: {anonLabelCnt}")
-    print_CDL_stats(cdlData, prgSize)
+    print_cdl_stats(cdlData, prgSize)
     print()
 
-    print(f"; === Address labels outside PRG ROM ===")
+    print(f"; === Address constants at $0000-$7fff ===")
     print()
-
-    # zero page
-    for addr in sorted(l for l in labels if l <= 0xff):
-        print(f"{labels[addr]:15s} equ {format_literal(addr)}")
+    print("; 'arr' = RAM array, 'ram' = RAM non-array, 'misc' = $2000-$7fff")
+    print("; note: unused hardware registers commented out")
     print()
-
-    # other RAM
-    for addr in sorted(l for l in labels if 0x0100 <= l <= 0x1fff):
-        print(f"{labels[addr]:15s} equ {format_literal(addr,bits=16)}")
-    print()
-
-    # memory-mapped registers
-    for addr in sorted(HARDWARE_REGISTERS):
-        name = ("" if addr in labels else ";") + HARDWARE_REGISTERS[addr]
-        print(f"{name:15s} equ {format_literal(addr,bits=16)}")
-    print()
-
-    # misc labels at $2000-$7fff
-    for addr in sorted(l for l in set(labels) - set(HARDWARE_REGISTERS) if 0x2000 <= l <= 0x7fff):
-        print(f"{labels[addr]:15s} equ " + format_literal(addr, bits=16))
+    # unused hardware registers are printed but commented out
+    for addr in sorted(l for l in set(labels) | set(HARDWARE_REGISTERS) if l <= 0x7fff):
+        name = labels[addr] if addr in labels else ";" + HARDWARE_REGISTERS[addr]
+        print(f"{name:15s} equ " + format_literal(addr, 8 if addr <= 0xff else 16))
     print()
 
     print(f"; === PRG ROM (CPU ${origin:04x}-${origin+prgSize-1:04x}) ===")
     print()
-    print(args.indentation * " " + "org " + format_literal(origin, bits=16))
+    print("; labels: 'sub' = subroutine, 'cod' = code, 'dat' = data")
+    print()
+    print(args.indentation * " " + "org " + format_literal(origin, 16))
     print()
 
     instrAddresses = set(get_instruction_addresses(handle, instrAddrRanges))
-    cdlCodeRanges = set(rng for rng in cdlData if cdlData[rng] == CDL_CODE)
-    cdlDataRanges = set(rng for rng in cdlData if cdlData[rng] == CDL_DATA)
+    cdlCodeRanges = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
+    cdlDataRanges = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
 
     handle.seek(0)
-    PRGData = handle.read()
+    prgData = handle.read()
 
     pos = 0  # position in PRG data
     dataStart = None  # where current string of data bytes started
@@ -609,14 +637,14 @@ def disassemble(handle, cdlData, args):
                 if not prevBlockWasData:
                     print()
                 print_data_lines(
-                    PRGData[dataStart:pos], origin, dataStart, labels, cdlDataRanges, args
+                    prgData[dataStart:pos], origin, dataStart, labels, cdlDataRanges, args
                 )
                 print()
                 dataStart = None
 
             label = labels.get(origin + pos, "")
-            (operandSize, operandFormat) = ADDRESSING_MODES[OPCODES[PRGData[pos]][1]]
-            instrBytes = PRGData[pos:pos+1+operandSize]  # opcode + operand
+            (operandSize, operandFormat) = ADDRESSING_MODES[OPCODES[prgData[pos]][1]]
+            instrBytes = prgData[pos:pos+1+operandSize]  # opcode + operand
             operand = operandFormat.format(format_operand_value(instrBytes, origin + pos, labels))
             isUnaccessed = cdlData and not any(pos in r for r in cdlCodeRanges)
 
@@ -635,7 +663,7 @@ def disassemble(handle, cdlData, args):
                     if not prevBlockWasData:
                         print()
                     print_data_lines(
-                        PRGData[dataStart:pos], origin, dataStart, labels, cdlDataRanges, args
+                        prgData[dataStart:pos], origin, dataStart, labels, cdlDataRanges, args
                     )
                     prevBlockWasData = True
                 # start new data block
@@ -646,59 +674,22 @@ def disassemble(handle, cdlData, args):
 
     if dataStart is not None:
         # print last data block
-        print_data_lines(PRGData[dataStart:], origin, dataStart, labels, cdlDataRanges, args)
+        print_data_lines(prgData[dataStart:], origin, dataStart, labels, cdlDataRanges, args)
 
     print()
-
-# --- Argument parsing, CDL file reading, main ----------------------------------------------------
-
-def read_cdl_file(handle, prgSize):
-    # read an FCEUX CDL file
-    # yield: (range_of_PRG_addresses, chunk_type)
-
-    if handle.seek(0, 2) < prgSize:
-        sys.exit("The CDL file must be at least as large as the PRG ROM file.")
-
-    handle.seek(0)
-    cdlData = handle.read(prgSize)
-
-    chunkStart = None  # start address of current chunk
-    chunkType = CDL_UNACCESSED  # type of current chunk
-
-    for (pos, byte) in enumerate(cdlData):
-        if byte & 0b1:
-            byteType = CDL_CODE
-        elif byte & 0b10:
-            byteType = CDL_DATA
-        else:
-            byteType = CDL_UNACCESSED
-
-        if byteType != chunkType:
-            if chunkType != CDL_UNACCESSED:
-                # end current chunk
-                yield (range(chunkStart, pos), chunkType)
-                chunkType = CDL_UNACCESSED
-            if byteType != CDL_UNACCESSED:
-                # start new chunk
-                chunkStart = pos
-                chunkType = byteType
-
-    if chunkType != CDL_UNACCESSED:
-        # end last chunk
-        yield (range(chunkStart, prgSize), chunkType)
 
 def main():
     args = parse_arguments()
 
-    # get PRG ROM size
+    # get PRG file size
     try:
         prgSize = os.path.getsize(args.input_file)
     except OSError:
-        sys.exit("Could not get PRG file size.")
+        sys.exit("Error getting PRG file size.")
     if not 1 <= prgSize <= 32 * 1024:
-        sys.exit("Input file must be 32 KiB or less.")
+        sys.exit("Invalid PRG file size.")
 
-    # get CDL data
+    # read CDL file
     if args.cdl_file:
         try:
             with open(args.cdl_file, "rb") as handle:
@@ -708,7 +699,7 @@ def main():
     else:
         cdlData = dict()
 
-    # disassemble input file
+    # disassemble PRG file
     try:
         with open(args.input_file, "rb") as handle:
             disassemble(handle, cdlData, args)

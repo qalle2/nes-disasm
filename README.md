@@ -28,10 +28,10 @@ The disassembler has a limited support for log files created with FCEUX Code/Dat
 
 ## Command line arguments
 ```
-usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [--no-abs-zp]
-                    [--no-abs-zpx] [--no-abs-zpy] [--no-opcodes NO_OPCODES]
-                    [--no-access NO_ACCESS] [--no-write NO_WRITE] [--no-execute NO_EXECUTE]
-                    [--unaccessed-as-data] [--no-anonymous-labels]
+usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [--no-zp-ab]
+                    [--no-zp-abx] [--no-zp-aby] [--no-opcodes NO_OPCODES] [--no-access NO_ACCESS]
+                    [--no-write NO_WRITE] [--no-execute NO_EXECUTE] [--unaccessed-as-data]
+                    [--no-anonymous-labels] [--list-opcodes]
                     input_file
 
 An NES (6502) disassembler.
@@ -48,33 +48,32 @@ optional arguments:
                         How many spaces to use for indentation (1 to 100, default=8).
   -d DATA_BYTES_PER_LINE, --data-bytes-per-line DATA_BYTES_PER_LINE
                         How many data bytes to print per 'hex ...' line (1 to 100, default=8).
-  --no-abs-zp           Assume the game never accesses zero page using absolute addressing if the
+  --no-zp-ab            Assume the game never accesses zero page using absolute addressing if the
                         instruction also supports zeroPage addressing.
-  --no-abs-zpx          Assume the game never accesses zero page using absolute,x addressing if
+  --no-zp-abx           Assume the game never accesses zero page using absolute,x addressing if
                         the instruction also supports zeroPage,x addressing.
-  --no-abs-zpy          Assume the game never accesses zero page using absolute,y addressing if
+  --no-zp-aby           Assume the game never accesses zero page using absolute,y addressing if
                         the instruction also supports zeroPage,y addressing.
   --no-opcodes NO_OPCODES
-                        Assume the game never uses these opcodes. Zero or more opcodes separated
-                        by commas. Each opcode is a hexadecimal integer (00 to ff). Examples: 00 =
-                        BRK, 01 = ORA (indirect,x).
+                        Assume the game never executes these opcodes. Zero or more opcodes
+                        separated by commas. Each opcode is an 8-bit hexadecimal integer. E.g.
+                        '00,01' = BRK, ORA (indirect,x).
   --no-access NO_ACCESS
-                        Assume the game never accesses (reads/writes/executes) these addresses.
-                        Zero or more ranges separated by commas. Each range consists of two
-                        hexadecimal addresses (0000 to ffff) separated by a hyphen. Examples:
-                        0800-1fff = mirrors of RAM, 2008-3fff = mirrors of PPU registers,
-                        4020-5fff = beginning of cartridge space, 6000-7fff = PRG RAM.
-  --no-write NO_WRITE   Assume the game never writes these addresses (via
-                        STA/STX/STY/DEC/INC/ASL/LSR/ROL/ROR). Same syntax as in --no-access.
-                        Example: 8000-ffff = PRG ROM.
+                        Assume the game never reads/writes/executes these addresses. Zero or more
+                        ranges ranges separated by commas. A range is two 16-bit hexadecimal
+                        addresses separated by a hyphen. E.g.
+                        '0800-1fff,2008-3fff,4020-5fff,6000-7fff' = mirrors of RAM, mirrors of PPU
+                        registers, beginning of cartridge space, PRG RAM.
+  --no-write NO_WRITE   Assume the game never writes these addresses. Same syntax as in --no-
+                        access. E.g. '8000-ffff' = PRG ROM.
   --no-execute NO_EXECUTE
-                        Assume the game never executes these addresses (via JMP, JSR or a branch
-                        instruction). Same syntax as in --no-access. Example: 2000-401f = memory-
-                        mapped registers.
+                        Assume the game never executes these addresses. Same syntax as in --no-
+                        access. E.g. '2000-401f' = memory-mapped registers.
   --unaccessed-as-data  Output unaccessed bytes as data instead of trying to disassemble them.
-                        (Note: without a CDL file, all bytes will be output as data.)
   --no-anonymous-labels
-                        Do not use anonymous PRG ROM labels ('+' and '-').
+                        Always use named labels instead of anonymous labels ('+' and '-').
+  --list-opcodes        List supported opcodes in CSV format and exit. (Note: specify a dummy
+                        input file.)
 ```
 
 ## Sample output
@@ -82,7 +81,8 @@ optional arguments:
 
 ## Hints
 * If ASM6 cannot reassemble the disassembly correctly, try enabling the options `--no-abs-zp`, `--no-abs-zpx` and `--no-abs-zpy`.
-* Use a CDL file for a clearer output. If you can't, try the options starting with `--no-` (except for `--no-anonymous-labels`) to help the disassembler avoid disassembling bytes that make no sense as code.
+* Use a CDL file for a clearer output. If you can't, try these options to help the disassembler avoid disassembling bytes that make no sense as code:
+`--no-zp-ab`, `--no-zp-abx`, `--no-zp-aby`, `--no-opcodes`, `--no-access`, `--no-write`, `--no-execute`
 
 ## To do
 * Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)
