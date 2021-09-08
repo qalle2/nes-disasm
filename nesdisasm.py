@@ -30,19 +30,9 @@ def parse_arguments():
         help="How many data bytes to print per 'hex ...' line (1 to 100, default=8)."
     )
     parser.add_argument(
-        "--no-zp-ab", action="store_true",
-        help="Assume the game never accesses zero page using absolute addressing if the "
-        "instruction also supports zeroPage addressing."
-    )
-    parser.add_argument(
-        "--no-zp-abx", action="store_true",
-        help="Assume the game never accesses zero page using absolute,x addressing if the "
-        "instruction also supports zeroPage,x addressing."
-    )
-    parser.add_argument(
-        "--no-zp-aby", action="store_true",
-        help="Assume the game never accesses zero page using absolute,y addressing if the "
-        "instruction also supports zeroPage,y addressing."
+        "--no-zp-abs", action="store_true",
+        help="Assume the game never accesses zero page using absolute/absolute,x/absolute,y "
+        "addressing if the instruction also supports zeroPage/zeroPage,x/zeroPage,y addressing."
     )
     parser.add_argument(
         "--no-opcodes", type=str, default="",
@@ -250,10 +240,10 @@ def get_instruction_address_ranges(handle, cdlData, args):
 
                     if isInstruction and (
                         # uses absolute/absolute,x/absolute,y instead of zp/zp,x/zp,y?
-                        addr <= 0xff and (
-                            args.no_zp_ab and addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
-                            or args.no_zp_abx and addrMode == AM_ABX
-                            or args.no_zp_aby and addrMode == AM_ABY and mnemonic == "ldx"
+                        addr <= 0xff and args.no_zp_abs and (
+                            addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
+                            or addrMode == AM_ABX
+                            or addrMode == AM_ABY and mnemonic == "ldx"
                         )
                         # accesses an excluded address?
                         or any(addr in r for r in noAccess)

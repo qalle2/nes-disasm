@@ -28,10 +28,10 @@ The disassembler has a limited support for log files created with FCEUX Code/Dat
 
 ## Command line arguments
 ```
-usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [--no-zp-ab]
-                    [--no-zp-abx] [--no-zp-aby] [--no-opcodes NO_OPCODES] [--no-access NO_ACCESS]
-                    [--no-write NO_WRITE] [--no-execute NO_EXECUTE] [--unaccessed-as-data]
-                    [--no-anonymous-labels] [--list-opcodes]
+usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [--no-zp-abs]
+                    [--no-opcodes NO_OPCODES] [--no-access NO_ACCESS] [--no-write NO_WRITE]
+                    [--no-execute NO_EXECUTE] [--unaccessed-as-data] [--no-anonymous-labels]
+                    [--list-opcodes]
                     input_file
 
 An NES (6502) disassembler.
@@ -48,12 +48,9 @@ optional arguments:
                         How many spaces to use for indentation (1 to 100, default=8).
   -d DATA_BYTES_PER_LINE, --data-bytes-per-line DATA_BYTES_PER_LINE
                         How many data bytes to print per 'hex ...' line (1 to 100, default=8).
-  --no-zp-ab            Assume the game never accesses zero page using absolute addressing if the
-                        instruction also supports zeroPage addressing.
-  --no-zp-abx           Assume the game never accesses zero page using absolute,x addressing if
-                        the instruction also supports zeroPage,x addressing.
-  --no-zp-aby           Assume the game never accesses zero page using absolute,y addressing if
-                        the instruction also supports zeroPage,y addressing.
+  --no-zp-abs           Assume the game never accesses zero page using
+                        absolute/absolute,x/absolute,y addressing if the instruction also supports
+                        zeroPage/zeroPage,x/zeroPage,y addressing.
   --no-opcodes NO_OPCODES
                         Assume the game never executes these opcodes. Zero or more opcodes
                         separated by commas. Each opcode is an 8-bit hexadecimal integer. E.g.
@@ -80,7 +77,7 @@ optional arguments:
 [Game Genie ROM](sample-output.txt) (see `test.sh` for command line arguments used)
 
 ## Hints
-* If ASM6 cannot reassemble the disassembly correctly, try enabling the options `--no-abs-zp`, `--no-abs-zpx` and `--no-abs-zpy`.
+* If ASM6 cannot reassemble the disassembly correctly, try enabling the option `--no-zp-abs`.
 * Use a CDL file for a clearer output. If you can't, try these options to help the disassembler avoid disassembling bytes that make no sense as code:
 `--no-zp-ab`, `--no-zp-abx`, `--no-zp-aby`, `--no-opcodes`, `--no-access`, `--no-write`, `--no-execute`
 
