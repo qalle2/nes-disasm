@@ -1,5 +1,6 @@
 test-out/
 *.bin
+*.cdl
 *.nes
 *.prg
 *.pyc

@@ -80,7 +80,7 @@ optional arguments:
 ## Sample output
 [Game Genie ROM](sample-output.txt) (see `test.sh` for command line arguments used)
 
-## Hints
+## Hints and notes
 * If ASM6 cannot reassemble the disassembly to a binary file that's identical to the original, try enabling the option `--no-absolute-zeropage`.
 It prevents the disassembler from outputting instructions that ASM6 would automatically optimize.
 * Use a CDL file for clearer output.
@@ -90,6 +90,7 @@ If you can't, try these options to help the disassembler avoid disassembling byt
   * `--no-access`
   * `--no-write`
   * `--no-execute`
+* Some options like `--no-absolute-zeropage` override what the CDL file says. This causes some actual code to be printed as `hex` bytes, which is necessary for compatibility with ASM6 (see above). However, that code will also be commented as "unaccessed", which is misleading and should be fixed.
 
 ## To do
 * Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)

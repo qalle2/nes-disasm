@@ -34,11 +34,17 @@ asm6 test-out/anontest-noanon.asm test-out/anontest-noanon.prg
 diff -q test-in/anontest.prg test-out/anontest-noanon.prg
 echo
 
-echo "=== Game Genie ==="
-python3 nesdisasm.py -z -o 00,01,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 -a 0800-1fff,2008-3fff,4020-7fff -x 2000-401f -w 8002-ffef,fff2-ffff test-in/gamegenie.prg > test-out/gamegenie.asm
+echo "=== Game Genie (CDL) ==="
+python3 nesdisasm.py -z -o 00,01,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 -a 0800-1fff,2008-3fff,4020-7fff -x 2000-401f -w 8002-ffef,fff2-ffff -c test-in/gamegenie.cdl test-in/gamegenie.prg > test-out/gamegenie.asm
 cp test-out/gamegenie.asm sample-output.txt
 asm6 test-out/gamegenie.asm test-out/gamegenie.prg
 diff -q test-in/gamegenie.prg test-out/gamegenie.prg
+echo
+
+echo "=== Game Genie (CDL, default settings; will NOT reassemble correctly) ==="
+python3 nesdisasm.py -c test-in/gamegenie.cdl test-in/gamegenie.prg > test-out/gamegenie-default.asm
+asm6 test-out/gamegenie-default.asm test-out/gamegenie-default.prg
+diff -q test-in/gamegenie.prg test-out/gamegenie-default.prg
 echo
 
 echo "=== Excitebike (CDL) ==="

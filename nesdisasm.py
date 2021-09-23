@@ -210,7 +210,14 @@ def parse_arguments():
 def read_cdl_file(handle, prgSize):
     # read an FCEUX CDL file; generate: (range_of_PRG_addresses, chunk_type)
 
-    handle.seek(0)
+    # read CDL data corresponding to PRG data (if PRG data is less than 16 KiB, read from end of
+    # first 16 KiB of CDL data)
+    cdlSize = handle.seek(0, 2)
+    if prgSize < 16 * 1024 and cdlSize >= 16 * 1024:
+        cdlStart = 16 * 1024 - prgSize
+    else:
+        cdlStart = 0
+    handle.seek(cdlStart)
     cdlData = handle.read(prgSize)
 
     chunkStart = None           # start address of current chunk
