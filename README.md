@@ -89,11 +89,11 @@ optional arguments:
 ## Hints
 Use a CDL file for clearer output.
 If you can't, try these options to help the disassembler avoid disassembling bytes that make no sense as code:
-  * `--no-absolute-zeropage`
-  * `--no-opcodes` (see `--list-opcodes`)
-  * `--no-access`
-  * `--no-write`
-  * `--no-execute`
+* `--no-absolute-zeropage`
+* `--no-opcodes` (see `--list-opcodes`)
+* `--no-access`
+* `--no-write`
+* `--no-execute`
 
 ## To do
 * Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)

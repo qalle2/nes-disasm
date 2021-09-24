@@ -582,16 +582,16 @@ def print_cdl_stats(cdlData, prgSize):
     instrByteCnt = sum(len(rng) for rng in cdlData if cdlData[rng] == CDL_CODE)
     dataByteCnt = sum(len(rng) for rng in cdlData if cdlData[rng] == CDL_DATA)
     unaccByteCnt = prgSize - instrByteCnt - dataByteCnt
-    print(f"; CDL file - instruction bytes: {instrByteCnt}")
-    print(f"; CDL file - data        bytes: {dataByteCnt}")
-    print(f"; CDL file - unaccessed  bytes: {unaccByteCnt}")
+    print("; CDL file - instruction bytes:", instrByteCnt)
+    print("; CDL file - data        bytes:", dataByteCnt)
+    print("; CDL file - unaccessed  bytes:", unaccByteCnt)
 
 def format_literal(n, bits=8):
     # format an ASM6 integer literal
     assert bits in (8, 16) and 0 <= n < 2 ** bits
     return f"${n:02x}" if bits == 8 else f"${n:04x}"
 
-def print_data_line(label, bytes_, origin, prgAddr, cdlAccessedRanges, args):
+def print_data_line(label, bytes_, origin, prgAddr, cdlDataRanges, args):
     # print data line (as 2 lines if label is too long)
 
     if len(label) > args.indentation - 1:
@@ -599,9 +599,7 @@ def print_data_line(label, bytes_, origin, prgAddr, cdlAccessedRanges, args):
         label = ""
 
     maxInstructionWidth = args.data_bytes_per_line * 3 + 5
-    # must check if accessed as code as well as data because options like --no-absolute-zeropage
-    # can force code to be disassembled as data
-    isUnaccessed = cdlAccessedRanges and not any(prgAddr in rng for rng in cdlAccessedRanges)
+    isUnaccessed = cdlDataRanges and not any(prgAddr in rng for rng in cdlDataRanges)
 
     print(
         format(label, f"{args.indentation}s")
@@ -610,7 +608,7 @@ def print_data_line(label, bytes_, origin, prgAddr, cdlAccessedRanges, args):
         + (11 * " " + "(unaccessed)" if isUnaccessed else "")
     )
 
-def print_data_lines(data, origin, prgAddr, labels, cdlAccessedRanges, args):
+def print_data_lines(data, origin, prgAddr, labels, cdlDataRanges, args):
     # print lines with data bytes
     # labels: dict
 
@@ -624,7 +622,7 @@ def print_data_lines(data, origin, prgAddr, labels, cdlAccessedRanges, args):
             if offset > startOffset:
                 print_data_line(
                     prevLabel, data[startOffset:offset], origin, prgAddr + startOffset,
-                    cdlAccessedRanges, args
+                    cdlDataRanges, args
                 )
                 startOffset = offset
             prevLabel = label
@@ -632,7 +630,7 @@ def print_data_lines(data, origin, prgAddr, labels, cdlAccessedRanges, args):
     # print last block, if any
     if len(data) > startOffset:
         print_data_line(
-            prevLabel, data[startOffset:], origin, prgAddr + startOffset, cdlAccessedRanges, args
+            prevLabel, data[startOffset:], origin, prgAddr + startOffset, cdlDataRanges, args
         )
 
 def format_operand_value(instrBytes, prgAddr, labels):
@@ -695,15 +693,15 @@ def disassemble(handle, cdlData, args):
     prgSize = handle.seek(0, 2)
     origin = 0x10000 - prgSize
 
-    print(f"; Input file: {os.path.basename(handle.name)}")
+    print("; Input file:", os.path.basename(handle.name))
     instrByteCnt = sum(len(rng) for rng in instrAddrRanges)
-    print(f"; Bytes - total      : {prgSize}")
-    print(f"; Bytes - instruction: {instrByteCnt}")
-    print(f"; Bytes - data       : {prgSize-instrByteCnt}")
+    print("; Bytes - total      :", prgSize)
+    print("; Bytes - instruction:", instrByteCnt)
+    print("; Bytes - data       :", prgSize - instrByteCnt)
     anonLabelCnt = sum(1 for a in labels if labels[a] in ("+", "-"))
-    print(f"; Labels - total    : {len(labels)}")
-    print(f"; Labels - named    : {len(labels)-anonLabelCnt}")
-    print(f"; Labels - anonymous: {anonLabelCnt}")
+    print("; Labels - total    :", len(labels))
+    print("; Labels - named    :", len(labels) - anonLabelCnt)
+    print("; Labels - anonymous:", anonLabelCnt)
     print_cdl_stats(cdlData, prgSize)
     print()
 
@@ -737,7 +735,6 @@ def disassemble(handle, cdlData, args):
     print()
 
     instrAddresses = set(get_instruction_addresses(handle, instrAddrRanges))
-    cdlAccessedRanges = {rng for rng in cdlData if cdlData[rng] != CDL_UNACCESSED}
     cdlCodeRanges = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
     cdlDataRanges = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
 
@@ -757,7 +754,7 @@ def disassemble(handle, cdlData, args):
                 if not prevBlockWasData:
                     print()
                 print_data_lines(
-                    prgData[dataStart:pos], origin, dataStart, labels, cdlAccessedRanges, args
+                    prgData[dataStart:pos], origin, dataStart, labels, cdlDataRanges, args
                 )
                 print()
                 dataStart = None
@@ -775,7 +772,6 @@ def disassemble(handle, cdlData, args):
         else:
             # data
 
-            # TODO: should this be cdlAccessedRanges?
             accessed = any(pos in rng for rng in cdlDataRanges)
 
             if dataStart is None or accessed != prevDataBlockAccessed:
@@ -784,7 +780,7 @@ def disassemble(handle, cdlData, args):
                     if not prevBlockWasData:
                         print()
                     print_data_lines(
-                        prgData[dataStart:pos], origin, dataStart, labels, cdlAccessedRanges, args
+                        prgData[dataStart:pos], origin, dataStart, labels, cdlDataRanges, args
                     )
                     prevBlockWasData = True
                 # start new data block
@@ -795,7 +791,7 @@ def disassemble(handle, cdlData, args):
 
     if dataStart is not None:
         # print last data block
-        print_data_lines(prgData[dataStart:], origin, dataStart, labels, cdlAccessedRanges, args)
+        print_data_lines(prgData[dataStart:], origin, dataStart, labels, cdlDataRanges, args)
 
     print()
 
