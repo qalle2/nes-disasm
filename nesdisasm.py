@@ -585,7 +585,7 @@ def format_literal(n, bits=8):
     assert bits in (8, 16) and 0 <= n < 2 ** bits
     return f"${n:02x}" if bits == 8 else f"${n:04x}"
 
-def print_data_line(label, bytes_, origin, prgAddr, cdlDataRanges, args):
+def print_data_line(label, bytes_, origin, prgAddr, cdlAccessedRanges, args):
     # print data line (as 2 lines if label is too long)
 
     if len(label) > args.indentation - 1:
@@ -593,7 +593,9 @@ def print_data_line(label, bytes_, origin, prgAddr, cdlDataRanges, args):
         label = ""
 
     maxInstructionWidth = args.data_bytes_per_line * 3 + 5
-    isUnaccessed = cdlDataRanges and not any(prgAddr in rng for rng in cdlDataRanges)
+    # must check if accessed as code as well as data because options like --no-absolute-zeropage
+    # can force code to be disassembled as data
+    isUnaccessed = cdlAccessedRanges and not any(prgAddr in rng for rng in cdlAccessedRanges)
 
     print(
         format(label, f"{args.indentation}s")
@@ -602,7 +604,7 @@ def print_data_line(label, bytes_, origin, prgAddr, cdlDataRanges, args):
         + (11 * " " + "(unaccessed)" if isUnaccessed else "")
     )
 
-def print_data_lines(data, origin, prgAddr, labels, cdlDataRanges, args):
+def print_data_lines(data, origin, prgAddr, labels, cdlAccessedRanges, args):
     # print lines with data bytes
     # labels: dict
 
@@ -616,7 +618,7 @@ def print_data_lines(data, origin, prgAddr, labels, cdlDataRanges, args):
             if offset > startOffset:
                 print_data_line(
                     prevLabel, data[startOffset:offset], origin, prgAddr + startOffset,
-                    cdlDataRanges, args
+                    cdlAccessedRanges, args
                 )
                 startOffset = offset
             prevLabel = label
@@ -624,7 +626,7 @@ def print_data_lines(data, origin, prgAddr, labels, cdlDataRanges, args):
     # print last block, if any
     if len(data) > startOffset:
         print_data_line(
-            prevLabel, data[startOffset:], origin, prgAddr + startOffset, cdlDataRanges, args
+            prevLabel, data[startOffset:], origin, prgAddr + startOffset, cdlAccessedRanges, args
         )
 
 def format_operand_value(instrBytes, prgAddr, labels):
@@ -710,6 +712,7 @@ def disassemble(handle, cdlData, args):
     print()
 
     instrAddresses = set(get_instruction_addresses(handle, instrAddrRanges))
+    cdlAccessedRanges = {rng for rng in cdlData if cdlData[rng] != CDL_UNACCESSED}
     cdlCodeRanges = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
     cdlDataRanges = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
 
@@ -729,7 +732,7 @@ def disassemble(handle, cdlData, args):
                 if not prevBlockWasData:
                     print()
                 print_data_lines(
-                    prgData[dataStart:pos], origin, dataStart, labels, cdlDataRanges, args
+                    prgData[dataStart:pos], origin, dataStart, labels, cdlAccessedRanges, args
                 )
                 print()
                 dataStart = None
@@ -755,7 +758,7 @@ def disassemble(handle, cdlData, args):
                     if not prevBlockWasData:
                         print()
                     print_data_lines(
-                        prgData[dataStart:pos], origin, dataStart, labels, cdlDataRanges, args
+                        prgData[dataStart:pos], origin, dataStart, labels, cdlAccessedRanges, args
                     )
                     prevBlockWasData = True
                 # start new data block
@@ -766,7 +769,7 @@ def disassemble(handle, cdlData, args):
 
     if dataStart is not None:
         # print last data block
-        print_data_lines(prgData[dataStart:], origin, dataStart, labels, cdlDataRanges, args)
+        print_data_lines(prgData[dataStart:], origin, dataStart, labels, cdlAccessedRanges, args)
 
     print()
 

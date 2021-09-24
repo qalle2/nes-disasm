@@ -90,7 +90,9 @@ If you can't, try these options to help the disassembler avoid disassembling byt
   * `--no-access`
   * `--no-write`
   * `--no-execute`
-* Some options like `--no-absolute-zeropage` override what the CDL file says. This causes some actual code to be printed as `hex` bytes, which is necessary for compatibility with ASM6 (see above). However, that code will also be commented as "unaccessed", which is misleading and should be fixed.
+* The output may be misleading if the CDL file says some bytes were accessed as code but command line options prevent them from being disassembled.
+For example, if the instruction `LDA $0045` (`ad 45 00`) is logged as code in the CDL file and the option `--no-absolute-zeropage` is used,
+the disassembler will print `hex ad` and `eor some_label` (0x45 incorrectly interpreted as an opcode). This needs to be fixed.
 
 ## To do
 * Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)

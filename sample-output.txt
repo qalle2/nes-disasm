@@ -249,7 +249,7 @@ cod1    ldx #$0a                     ; f029: a2 0a
         sta arr1                     ; f051: 85 00
         sta ppu_ctrl                 ; f053: 8d 00 20
 
-        hex ce 2b 00                 ; f056           (unaccessed)
+        hex ce 2b 00                 ; f056
 
         jmp cod14                    ; f059: 4c 1f f4
 sub2    lda #$01                     ; f05c: a9 01
@@ -279,12 +279,12 @@ sub2    lda #$01                     ; f05c: a9 01
         jsr sub6                     ; f086: 20 69 f1
         jsr sub7                     ; f089: 20 74 f1
 
-        hex ad                       ; f08c           (unaccessed)
+        hex ad                       ; f08c
 
         eor arr1                     ; f08d: 45 00
         sta ppu_scroll               ; f08f: 8d 05 20
 
-        hex ad                       ; f092           (unaccessed)
+        hex ad                       ; f092
 
         lsr arr1                     ; f093: 46 00
         sta ppu_scroll               ; f095: 8d 05 20
@@ -292,7 +292,7 @@ sub2    lda #$01                     ; f05c: a9 01
         sta ppu_ctrl                 ; f09a: 8d 00 20
 +       lda #$01                     ; f09d: a9 01
 
-        hex 8d                       ; f09f           (unaccessed)
+        hex 8d                       ; f09f
 
         eor #$00                     ; f0a0: 49 00
         pla                          ; f0a2: 68
@@ -311,20 +311,20 @@ sub3    stx ram11                    ; f0a8: 86 17
         lda (ram36),y                ; f0b6: b1 39
         sta ram8                     ; f0b8: 85 0e
 
-        hex ad 39 00                 ; f0ba           (unaccessed)
+        hex ad 39 00                 ; f0ba
 
         clc                          ; f0bd: 18
         adc #$02                     ; f0be: 69 02
 
-        hex 8d                       ; f0c0           (unaccessed)
+        hex 8d                       ; f0c0
 
         and $ad00,y                  ; f0c1: 39 00 ad
 
-        hex 3a 00                    ; f0c4           (unaccessed)
+        hex 3a 00                    ; f0c4
 
         adc #$00                     ; f0c6: 69 00
 
-        hex 8d 3a 00                 ; f0c8           (unaccessed)
+        hex 8d 3a 00                 ; f0c8
 
         lda #$00                     ; f0cb: a9 00
         sta ram10                    ; f0cd: 85 16
@@ -346,22 +346,22 @@ sub4    lda ram10                    ; f0e7: a5 16
         clc                          ; f0ee: 18
         adc ram9                     ; f0ef: 65 15
 
-        hex 8d                       ; f0f1           (unaccessed)
+        hex 8d                       ; f0f1
 
         rti                          ; f0f2: 40
 
-        hex 00                       ; f0f3           (unaccessed)
+        hex 00                       ; f0f3
 
         lsr a                        ; f0f4: 4a
         tay                          ; f0f5: a8
         lda (ram36),y                ; f0f6: b1 39
         sta ram2                     ; f0f8: 85 04
 
-        hex ad                       ; f0fa           (unaccessed)
+        hex ad                       ; f0fa
 
         rti                          ; f0fb: 40
 
-        hex 00                       ; f0fc           (unaccessed)
+        hex 00                       ; f0fc
 
         and #$01                     ; f0fd: 29 01
         beq +                        ; f0ff: f0 07
@@ -794,41 +794,41 @@ cod14   lda #$01                     ; f41f: a9 01
         jsr sub6                     ; f44a: 20 69 f1
         lda #$0e                     ; f44d: a9 0e
 
-        hex 8d                       ; f44f           (unaccessed)
+        hex 8d                       ; f44f
 
         bvc +                        ; f450: 50 00
 +       sta ram25                    ; f452: 85 2d
         lda #$3c                     ; f454: a9 3c
 
-        hex 8d 51 00                 ; f456           (unaccessed)
+        hex 8d 51 00                 ; f456
 
         sta ram27                    ; f459: 85 2f
         lda #$80                     ; f45b: a9 80
 
-        hex 8d                       ; f45d           (unaccessed)
+        hex 8d                       ; f45d
 
         eor arr1,x                   ; f45e: 55 00
         lda #$96                     ; f460: a9 96
 
-        hex 8d                       ; f462           (unaccessed)
+        hex 8d                       ; f462
 
         lsr arr1,x                   ; f463: 56 00
         lda #$14                     ; f465: a9 14
         jsr sub9                     ; f467: 20 e9 f1
 
-        hex 8d 4f 00                 ; f46a           (unaccessed)
+        hex 8d 4f 00                 ; f46a
 
         lda #$02                     ; f46d: a9 02
         jsr sub9                     ; f46f: 20 e9 f1
 
-        hex 8d 54 00                 ; f472           (unaccessed)
+        hex 8d 54 00                 ; f472
 
         lda #$ff                     ; f475: a9 ff
         sta ram27                    ; f477: 85 2f
         lda #$05                     ; f479: a9 05
         jsr sub9                     ; f47b: 20 e9 f1
 
-        hex 8d 7b 00                 ; f47e           (unaccessed)
+        hex 8d 7b 00                 ; f47e
 
         ldx #$13                     ; f481: a2 13
 -       lda dat3,x                   ; f483: bd 43 f8
@@ -862,11 +862,11 @@ cod14   lda #$01                     ; f41f: a9 01
         jmp -                        ; f4c6: 4c c0 f4
 sub17   lda #$00                     ; f4c9: a9 00
 
-        hex 8d                       ; f4cb           (unaccessed)
+        hex 8d                       ; f4cb
 
         eor #$00                     ; f4cc: 49 00
 
--       hex ad                       ; f4ce           (unaccessed)
+-       hex ad                       ; f4ce
 
         eor #$00                     ; f4cf: 49 00
         beq -                        ; f4d1: f0 fb
@@ -881,22 +881,22 @@ sub18   jsr sub2                     ; f4d4: 20 5c f0
         jsr sub31                    ; f4e9: 20 f6 f8
         jsr sub53                    ; f4ec: 20 89 fd
 
-        hex ad                       ; f4ef           (unaccessed)
+        hex ad                       ; f4ef
 
         bvc +                        ; f4f0: 50 00
 +       sta ram25                    ; f4f2: 85 2d
 
-        hex ad 51 00                 ; f4f4           (unaccessed)
+        hex ad 51 00                 ; f4f4
 
         sta ram27                    ; f4f7: 85 2f
 
-        hex ae 4f 00                 ; f4f9           (unaccessed)
+        hex ae 4f 00                 ; f4f9
 
         jsr sub11                    ; f4fc: 20 5b f2
         jsr sub13                    ; f4ff: 20 57 f3
         rts                          ; f502: 60
 
-sub19   hex ad 5a 00                 ; f503           (unaccessed)
+sub19   hex ad 5a 00                 ; f503
 
         bne cod18                    ; f506: d0 5d
         lda ram4                     ; f508: a5 07
@@ -907,11 +907,11 @@ sub19   hex ad 5a 00                 ; f503           (unaccessed)
         beq cod16                    ; f513: f0 23
         lda #$3f                     ; f515: a9 3f
 
-        hex 8d                       ; f517           (unaccessed)
+        hex 8d                       ; f517
 
         eor $a900,y                  ; f518: 59 00 a9
 
-        hex f7 8d 5a 00              ; f51b           (unaccessed)
+        hex f7 8d 5a 00              ; f51b
 
         lda #$08                     ; f51f: a9 08
         jsr sub24                    ; f521: 20 8f f7
@@ -920,11 +920,11 @@ sub19   hex ad 5a 00                 ; f503           (unaccessed)
         jmp cod15                    ; f528: 4c 2d f5
 +       lda #$00                     ; f52b: a9 00
 
-cod15   hex 8d 5b 00                 ; f52d           (unaccessed)
+cod15   hex 8d 5b 00                 ; f52d
 
         lda #$08                     ; f530: a9 08
 
-        hex 8d 5e 00                 ; f532           (unaccessed)
+        hex 8d 5e 00                 ; f532
 
         jmp cod18                    ; f535: 4c 65 f5
 cod16   lda ram4                     ; f538: a5 07
@@ -935,12 +935,12 @@ cod16   lda ram4                     ; f538: a5 07
         beq cod18                    ; f543: f0 20
         lda #$ff                     ; f545: a9 ff
 
-        hex 8d                       ; f547           (unaccessed)
+        hex 8d                       ; f547
 
         eor $a900,y                  ; f548: 59 00 a9
         inc arr6,x                   ; f54b: f6 8d
 
-        hex 5a 00                    ; f54d           (unaccessed)
+        hex 5a 00                    ; f54d
 
         lda #$04                     ; f54f: a9 04
         jsr sub24                    ; f551: 20 8f f7
@@ -949,16 +949,16 @@ cod16   lda ram4                     ; f538: a5 07
         jmp cod17                    ; f558: 4c 5d f5
 +       lda #$00                     ; f55b: a9 00
 
-cod17   hex 8d 5b 00                 ; f55d           (unaccessed)
+cod17   hex 8d 5b 00                 ; f55d
 
         lda #$04                     ; f560: a9 04
 
-        hex 8d 5e 00                 ; f562           (unaccessed)
-cod18   hex ad                       ; f565           (unaccessed)
+        hex 8d 5e 00                 ; f562
+cod18   hex ad                       ; f565
 
         cli                          ; f566: 58
 
-        hex 00                       ; f567           (unaccessed)
+        hex 00                       ; f567
 
         bne cod19                    ; f568: d0 45
         lda ram4                     ; f56a: a5 07
@@ -969,23 +969,23 @@ cod18   hex ad                       ; f565           (unaccessed)
         beq +                        ; f575: f0 17
         lda #$3f                     ; f577: a9 3f
 
-        hex 8d 57 00                 ; f579           (unaccessed)
+        hex 8d 57 00                 ; f579
 
         lda #$f7                     ; f57c: a9 f7
 
-        hex 8d                       ; f57e           (unaccessed)
+        hex 8d                       ; f57e
 
         cli                          ; f57f: 58
 
-        hex 00                       ; f580           (unaccessed)
+        hex 00                       ; f580
 
         lda #$00                     ; f581: a9 00
 
-        hex 8d 5c 00                 ; f583           (unaccessed)
+        hex 8d 5c 00                 ; f583
 
         lda #$02                     ; f586: a9 02
 
-        hex 8d 5d 00                 ; f588           (unaccessed)
+        hex 8d 5d 00                 ; f588
 
         jmp cod19                    ; f58b: 4c af f5
 +       lda ram4                     ; f58e: a5 07
@@ -996,23 +996,23 @@ cod18   hex ad                       ; f565           (unaccessed)
         beq cod19                    ; f599: f0 14
         lda #$ff                     ; f59b: a9 ff
 
-        hex 8d 57 00                 ; f59d           (unaccessed)
+        hex 8d 57 00                 ; f59d
 
         lda #$f6                     ; f5a0: a9 f6
 
-        hex 8d                       ; f5a2           (unaccessed)
+        hex 8d                       ; f5a2
 
         cli                          ; f5a3: 58
 
-        hex 00                       ; f5a4           (unaccessed)
+        hex 00                       ; f5a4
 
         lda #$00                     ; f5a5: a9 00
 
-        hex 8d 5c 00                 ; f5a7           (unaccessed)
+        hex 8d 5c 00                 ; f5a7
 
         lda #$01                     ; f5aa: a9 01
 
-        hex 8d 5d 00                 ; f5ac           (unaccessed)
+        hex 8d 5d 00                 ; f5ac
 
 cod19   rts                          ; f5af: 60
 sub20   sta ram2                     ; f5b0: 85 04
@@ -1114,7 +1114,7 @@ sub21   lda #$00                     ; f5d3: a9 00
         jsr sub26                    ; f672: 20 ea f7
         lda #$02                     ; f675: a9 02
 
-        hex 8d 82 00                 ; f677           (unaccessed)
+        hex 8d 82 00                 ; f677
 
         rts                          ; f67a: 60
 sub22   lda ram67                    ; f67b: a5 5f
@@ -1315,11 +1315,11 @@ cod28   lda ram115                   ; f857: ad 77 04
         jmp cod29                    ; f860: 4c 65 f8
 +       lda #$1a                     ; f863: a9 1a
 
-cod29   hex ae                       ; f865           (unaccessed)
+cod29   hex ae                       ; f865
 
         adc $e000                    ; f866: 6d 00 e0
 
-        hex 07                       ; f869           (unaccessed)
+        hex 07                       ; f869
 
         bcs +                        ; f86a: b0 02
         ora #$20                     ; f86c: 09 20
@@ -1499,11 +1499,11 @@ sub33   lda ram73                    ; f992: a5 65
         sta ram76                    ; f9a8: 85 68
         lda ram57                    ; f9aa: a5 55
 
-        hex 8d 6e 00                 ; f9ac           (unaccessed)
+        hex 8d 6e 00                 ; f9ac
 
         lda ram76                    ; f9af: a5 68
 
-        hex 8d 6f 00                 ; f9b1           (unaccessed)
+        hex 8d 6f 00                 ; f9b1
 
         jsr sub34                    ; f9b4: 20 2f fa
         clc                          ; f9b7: 18
@@ -1514,11 +1514,11 @@ sub33   lda ram73                    ; f992: a5 65
         sta ram79                    ; f9c1: 85 6b
         lda ram58                    ; f9c3: a5 56
 
-        hex 8d 6e 00                 ; f9c5           (unaccessed)
+        hex 8d 6e 00                 ; f9c5
 
         lda ram77                    ; f9c8: a5 69
 
-        hex 8d 6f 00                 ; f9ca           (unaccessed)
+        hex 8d 6f 00                 ; f9ca
 
         jsr sub34                    ; f9cd: 20 2f fa
         clc                          ; f9d0: 18
@@ -1815,7 +1815,7 @@ sub47   lda ram70                    ; fc0a: a5 62
         clc                          ; fc25: 18
         adc ram70                    ; fc26: 65 62
 
-        hex 8d 7d 00                 ; fc28           (unaccessed)
+        hex 8d 7d 00                 ; fc28
 
         adc #$03                     ; fc2b: 69 03
         ldx ram95                    ; fc2d: a6 7b
@@ -1845,7 +1845,7 @@ sub47   lda ram70                    ; fc0a: a5 62
         lda #$10                     ; fc52: a9 10
         sta ram94                    ; fc54: 85 7a
 
-        hex ad 7d 00                 ; fc56           (unaccessed)
+        hex ad 7d 00                 ; fc56
 
         asl a                        ; fc59: 0a
         asl a                        ; fc5a: 0a
@@ -1868,7 +1868,7 @@ sub47   lda ram70                    ; fc0a: a5 62
         sta sq1_sweep                ; fc79: 8d 01 40
         lda #$14                     ; fc7c: a9 14
 
-        hex 8d 7c 00                 ; fc7e           (unaccessed)
+        hex 8d 7c 00                 ; fc7e
 
         rts                          ; fc81: 60
 sub48   lda ram96                    ; fc82: a5 7c
