@@ -21,6 +21,11 @@ The disassembler has a limited support for log files created with FCEUX Code/Dat
   * CDL byte `0bxxxxxx10` (data only): output as data (`hex ...`).
   * CDL byte `0b00000000` (unaccessed): attempt to disassemble, or if `--unaccessed-as-data` is used, output as data; in either case, add `(unaccessed)` to comment.
 
+## Macros
+If the file to be disassembled unnecessarily uses 16-bit addressing (absolute/absolute,x/absolute,y) with operands less than or equal to `$ff`,
+the disassembler will replace that instruction with a macro like `lda_abs`.
+Otherwise ASM6 would optimize the instruction to use zero page addressing instead, and the reassembled binary would not be identical to the original.
+
 ## Limitations
 * iNES ROM files (`.nes`) are not supported. (To convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).)
 * PRG ROM files larger than 32 KiB are not supported.
@@ -78,21 +83,17 @@ optional arguments:
 ```
 
 ## Sample output
-[Game Genie ROM](sample-output.txt) (see `test.sh` for command line arguments used)
+* [Game Genie ROM](sample-output.txt) (disassembled with a CDL file; see `test.sh` for details)
+* [Game Genie ROM](sample-output-nocdl.txt) (disassembled without a CDL file; see `test.sh` for details)
 
-## Hints and notes
-* If ASM6 cannot reassemble the disassembly to a binary file that's identical to the original, try enabling the option `--no-absolute-zeropage`.
-It prevents the disassembler from outputting instructions that ASM6 would automatically optimize.
-* Use a CDL file for clearer output.
+## Hints
+Use a CDL file for clearer output.
 If you can't, try these options to help the disassembler avoid disassembling bytes that make no sense as code:
   * `--no-absolute-zeropage`
   * `--no-opcodes` (see `--list-opcodes`)
   * `--no-access`
   * `--no-write`
   * `--no-execute`
-* The output may be misleading if the CDL file says some bytes were accessed as code but command line options prevent them from being disassembled.
-For example, if the instruction `LDA $0045` (`ad 45 00`) is logged as code in the CDL file and the option `--no-absolute-zeropage` is used,
-the disassembler will print `hex ad` and `eor some_label` (0x45 incorrectly interpreted as an opcode). This needs to be fixed.
 
 ## To do
 * Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)

@@ -302,6 +302,15 @@ def decode_relative_address(pc, offset):
     assert 0x00 <= offset <= 0xff
     return pc + 2 - (offset & 0x80) + (offset & 0x7f)
 
+def is_abs_opcode_with_zp_equivalent(opcode):
+    # is the opcode an absolute/absolute,x/absolute,y opcode that has a zero page equivalent?
+    (mnemonic, addrMode) = OPCODES[opcode]
+    return (
+        addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
+        or addrMode == AM_ABX
+        or addrMode == AM_ABY and mnemonic == "ldx"
+    )
+
 def get_instruction_address_ranges(handle, cdlData, args):
     # generate PRG address ranges of instructions from a PRG file
     # cdlData: {address_range: chunk_type, ...}, yield: one range per call
@@ -343,11 +352,8 @@ def get_instruction_address_ranges(handle, cdlData, args):
                     addr = decode_16bit_address(prgData[pos+1], prgData[pos+2])
                     isInstruction = not (
                         # uses absolute instead of zero page?
-                        args.no_absolute_zeropage and addr <= 0xff and (
-                            addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
-                            or addrMode == AM_ABX
-                            or addrMode == AM_ABY and mnemonic == "ldx"
-                        )
+                        args.no_absolute_zeropage and addr <= 0xff
+                        and is_abs_opcode_with_zp_equivalent(opcode)
                         # accesses an excluded address?
                         or any(addr in r for r in noAccess)
                         # writes an excluded address?
@@ -659,7 +665,14 @@ def print_instruction(label, cpuAddr, instrBytes, operand, isUnaccessed, args):
         print(label)
         label = ""
 
-    mnemonic = OPCODES[instrBytes[0]][0]
+    if is_abs_opcode_with_zp_equivalent(instrBytes[0]) and instrBytes[2] == 0x00:
+        # use macro instead of mnemonic
+        (mnemonic, addrMode) = OPCODES[instrBytes[0]]
+        addrModeName = {AM_AB: "abs", AM_ABX: "absx", AM_ABY: "absy"}[addrMode]
+        mnemonic = f"{mnemonic}_{addrModeName}"
+    else:
+        mnemonic = OPCODES[instrBytes[0]][0]
+
     instrBytesHex = " ".join(f"{b:02x}" for b in instrBytes)
 
     print(
@@ -694,7 +707,19 @@ def disassemble(handle, cdlData, args):
     print_cdl_stats(cdlData, prgSize)
     print()
 
-    print(f"; === Address constants at $0000-$7fff ===")
+    print("; === Macros ===")
+    print()
+    print("; force 16-bit addressing (absolute/absolute,x/absolute,y) with operands <= $ff")
+    print()
+    for opcode in sorted(o for o in OPCODES if is_abs_opcode_with_zp_equivalent(o)):
+        (mnemonic, addrMode) = OPCODES[opcode]
+        addrModeName = {AM_AB: "abs", AM_ABX: "absx", AM_ABY: "absy"}[addrMode]
+        print(f"macro {mnemonic}_{addrModeName} _zp")
+        print(args.indentation * " " + f"db ${opcode:02x}, _zp, $00")
+        print("endm")
+    print()
+
+    print("; === Address constants at $0000-$7fff ===")
     print()
     print("; 'arr' = RAM array, 'ram' = RAM non-array, 'misc' = $2000-$7fff")
     print("; note: unused hardware registers commented out")
@@ -750,6 +775,7 @@ def disassemble(handle, cdlData, args):
         else:
             # data
 
+            # TODO: should this be cdlAccessedRanges?
             accessed = any(pos in rng for rng in cdlDataRanges)
 
             if dataStart is None or accessed != prevDataBlockAccessed:

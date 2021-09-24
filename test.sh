@@ -34,47 +34,54 @@ asm6 test-out/anontest-noanon.asm test-out/anontest-noanon.prg
 diff -q test-in/anontest.prg test-out/anontest-noanon.prg
 echo
 
-echo "=== Game Genie (CDL) ==="
-python3 nesdisasm.py -z -o 00,01,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 -a 0800-1fff,2008-3fff,4020-7fff -x 2000-401f -w 8002-ffef,fff2-ffff -c test-in/gamegenie.cdl test-in/gamegenie.prg > test-out/gamegenie.asm
-cp test-out/gamegenie.asm sample-output.txt
+echo "=== Game Genie ==="
+python3 nesdisasm.py -c test-in/gamegenie.cdl test-in/gamegenie.prg > test-out/gamegenie.asm
 asm6 test-out/gamegenie.asm test-out/gamegenie.prg
 diff -q test-in/gamegenie.prg test-out/gamegenie.prg
+cp test-out/gamegenie.asm sample-output.txt
 echo
 
-echo "=== Game Genie (CDL, default settings; will NOT reassemble correctly) ==="
-python3 nesdisasm.py -c test-in/gamegenie.cdl test-in/gamegenie.prg > test-out/gamegenie-default.asm
-asm6 test-out/gamegenie-default.asm test-out/gamegenie-default.prg
-diff -q test-in/gamegenie.prg test-out/gamegenie-default.prg
+echo "=== Game Genie (no CDL) ==="
+python3 nesdisasm.py -o 00,01,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 -a 0800-1fff,2008-3fff,4020-7fff -x 2000-401f -w 8002-ffef,fff2-ffff test-in/gamegenie.prg > test-out/gamegenie-nocdl.asm
+asm6 test-out/gamegenie-nocdl.asm test-out/gamegenie.prg
+diff -q test-in/gamegenie.prg test-out/gamegenie.prg
+cp test-out/gamegenie-nocdl.asm sample-output-nocdl.txt
 echo
 
-echo "=== Excitebike (CDL) ==="
-python3 nesdisasm.py -z -o 00 -a 0800-1fff,2008-3fff,4020-bfff -x 2000-401f -w 8000-ffff test-in/excitebike.prg -c ~/nes/cdl/excitebike-ju.cdl > test-out/excitebike.asm
+echo "=== Excitebike ==="
+python3 nesdisasm.py -c test-in/excitebike-ju.cdl test-in/excitebike-ju.prg > test-out/excitebike.asm
 asm6 test-out/excitebike.asm test-out/excitebike.prg
-diff -q test-in/excitebike.prg test-out/excitebike.prg
+diff -q test-in/excitebike-ju.prg test-out/excitebike.prg
 echo
 
-echo "=== Lunar Pool (CDL; disassemble unaccessed bytes) ==="
-python3 nesdisasm.py -z -o 00,01,41,c1,e1 -a 0800-1fff,2008-3fff,4020-bfff -x 2000-401f -w 8000-ffff -c ~/nes/cdl/lunarpool-u.cdl test-in/lunarpool.prg > test-out/lunarpool.asm
+echo "=== Excitebike (no CDL) ==="
+python3 nesdisasm.py -z -o 00 -a 0800-1fff,2008-3fff,4020-bfff -x 2000-401f -w 8000-ffff test-in/excitebike-ju.prg > test-out/excitebike-nocdl.asm
+asm6 test-out/excitebike-nocdl.asm test-out/excitebike.prg
+diff -q test-in/excitebike-ju.prg test-out/excitebike.prg
+echo
+
+echo "=== Lunar Pool ==="
+python3 nesdisasm.py -c test-in/lunarpool-u.cdl test-in/lunarpool-u.prg > test-out/lunarpool.asm
 asm6 test-out/lunarpool.asm test-out/lunarpool.prg
-diff -q test-in/lunarpool.prg test-out/lunarpool.prg
+diff -q test-in/lunarpool-u.prg test-out/lunarpool.prg
 echo
 
-echo "=== Lunar Pool (CDL; don't disassemble unaccessed bytes) ==="
-python3 nesdisasm.py -z -o 00,01,41,c1,e1 -a 0800-1fff,2008-3fff,4020-bfff -x 2000-401f -w 8000-ffff -c ~/nes/cdl/lunarpool-u.cdl --unaccessed-as-data test-in/lunarpool.prg > test-out/lunarpool-nounacc.asm
+echo "=== Lunar Pool (don't disassemble unaccessed bytes) ==="
+python3 nesdisasm.py -z -o 00,01,41,c1,e1 -a 0800-1fff,2008-3fff,4020-bfff -x 2000-401f -w 8000-ffff -c test-in/lunarpool-u.cdl --unaccessed-as-data test-in/lunarpool-u.prg > test-out/lunarpool-nounacc.asm
 asm6 test-out/lunarpool-nounacc.asm test-out/lunarpool-nounacc.prg
-diff -q test-in/lunarpool.prg test-out/lunarpool-nounacc.prg
+diff -q test-in/lunarpool-u.prg test-out/lunarpool-nounacc.prg
 echo
 
 echo "=== Lunar Pool (no CDL, indentation 5) ==="
-python3 nesdisasm.py -z -o 00,01,41,c1,e1 -a 0800-1fff,2008-3fff,4020-bfff -x 2000-401f -w 8000-ffff -i 5 test-in/lunarpool.prg > test-out/lunarpool-nocdl.asm
+python3 nesdisasm.py -z -o 00,01,41,c1,e1 -a 0800-1fff,2008-3fff,4020-bfff -x 2000-401f -w 8000-ffff -i 5 test-in/lunarpool-u.prg > test-out/lunarpool-nocdl.asm
 asm6 test-out/lunarpool-nocdl.asm test-out/lunarpool-nocdl.prg
-diff -q test-in/lunarpool.prg test-out/lunarpool-nocdl.prg
+diff -q test-in/lunarpool-u.prg test-out/lunarpool-nocdl.prg
 echo
 
-echo "=== SMB (use CDL file, indentation 12, 16 data bytes/line) ==="
-python3 nesdisasm.py -z -o 00,01,11,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 -a 0800-1fff,2008-3fff,4020-7fff -x 2000-401f -w 8000-ffff -c ~/nes/cdl/smb1-w.cdl -i 12 -d 16 test-in/smb1.prg > test-out/smb1.asm
+echo "=== SMB (indentation 12, 16 data bytes/line) ==="
+python3 nesdisasm.py -z -o 00,01,11,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 -a 0800-1fff,2008-3fff,4020-7fff -x 2000-401f -w 8000-ffff -c test-in/smb1-w.cdl -i 12 -d 16 test-in/smb1-w.prg > test-out/smb1.asm
 asm6 test-out/smb1.asm test-out/smb1.prg
-diff -q test-in/smb1.prg test-out/smb1.prg
+diff -q test-in/smb1-w.prg test-out/smb1.prg
 echo
 
 rm -f test-out/*.prg
