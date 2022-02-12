@@ -82,18 +82,16 @@ optional arguments:
   -l, --list-opcodes    List supported opcodes and exit. (Note: specify a dummy input file.)
 ```
 
-## Sample output
-* [Game Genie ROM](sample-output.txt) (disassembled with a CDL file; see `test.sh` for details)
-* [Game Genie ROM](sample-output-nocdl.txt) (disassembled without a CDL file; see `test.sh` for details)
+There's an example of the output in `sample-output.txt`.
 
 ## Hints
-Use a CDL file for clearer output.
+* Use a CDL file for clearer output.
 If you can't, try these options to help the disassembler avoid disassembling bytes that make no sense as code:
-* `--no-absolute-zeropage`
-* `--no-opcodes` (see `--list-opcodes`)
-* `--no-access`
-* `--no-write`
-* `--no-execute`
+`-z, -o, -a, -w, -x`
+* Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from CDL files.
 
 ## To do
-* Better support for CDL files. (Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from them.)
+* print immediate operand of AND/EOR/ORA in binary
+* automatically print CLC followed by ADC as a macro; same for SEC and SBC
+* allow more anonymous labels (e.g. allow an anonymous forward jump to cross an anonymous backward jump and vice versa)
+* better support for CDL files (e.g. print "indirectly accessed" in comments)

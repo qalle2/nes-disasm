@@ -1,5 +1,3 @@
 test-out/
 *.bin
 *.cdl
-*.prg
-*.pyc

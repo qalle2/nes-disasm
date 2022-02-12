@@ -1,158 +1,134 @@
-; this is a manually-written test file; assemble with ASM6 into anontest.prg
-; note: the "brk" instructions are for readability
+; test anonymous labels (the BRK instructions are for readability)
 
-    org $ff00
+; --- BPL -----------------------------------------------------------------------------------------
 
-; --- bpl ------------------------------------------------------------------------------------------
+        base $ff00
 
--   bpl -
+-       bpl -
+        brk
 
-    brk
+; --- BPL, BPL, NOP (1st target >= 2nd target) ----------------------------------------------------
 
-; --- bpl, bpl, nop (1st target >= 2nd target) -----------------------------------------------------
+-       bpl -
+        bpl -
+        nop
+        brk
 
--   bpl -
-    bpl -
-    nop
+-       bpl +
++       bpl -
+        nop
+        brk
 
-    brk
+-       bpl +
+        bpl -
++       nop
+        brk
 
--   bpl +
-+   bpl -
-    nop
+        bpl label1
+label1  bpl label1
+        nop
+        brk
 
-    brk
+        bpl +
+-       bpl -
++       nop
+        brk
 
--   bpl +
-    bpl -
-+   nop
+        bpl +
+        bpl +
++       nop
+        brk
 
-    brk
+; --- BPL, NOP, BPL, NOP (1st target >= 2nd target) -----------------------------------------------
 
-    bpl l1
-l1  bpl l1
-    nop
+-       bpl -
+        nop
+        bpl -
+        nop
+        brk
 
-    brk
+-       bpl +
++       nop
+        bpl -
+        nop
+        brk
 
-    bpl +
--   bpl -
-+   nop
+-       bpl +
+        nop
++       bpl -
+        nop
+        brk
 
-    brk
+-       bpl +
+        nop
+        bpl -
++       nop
+        brk
 
-    bpl +
-    bpl +
-+   nop
+        bpl label2
+label2  nop
+        bpl label2
+        nop
+        brk
 
-    brk
+        bpl +
+-       nop
++       bpl -
+        nop
+        brk
 
-; --- bpl, nop, bpl, nop (1st target >= 2nd target) ------------------------------------------------
+        bpl +
+-       nop
+        bpl -
++       nop
+        brk
 
--   bpl -
-    nop
-    bpl -
-    nop
+        bpl label3
+        nop
+label3  bpl label3
+        nop
+        brk
 
-    brk
+        bpl +
+        nop
+-       bpl -
++       nop
+        brk
 
--   bpl +
-+   nop
-    bpl -
-    nop
+        bpl +
+        nop
+        bpl +
++       nop
+        brk
 
-    brk
+; --- misc (1st target >= 2nd target >= 3rd target) -----------------------------------------------
 
--   bpl +
-    nop
-+   bpl -
-    nop
+--      bpl ++
+-       bpl +
++       bpl -
+++      bpl --
+        brk
 
-    brk
+--      bpl +
+-       bpl ++
++       bpl --
+++      bpl -
+        brk
 
--   bpl +
-    nop
-    bpl -
-+   nop
+---     bpl +++
+--      bpl ++
+-       bpl +
++       bpl -
+++      bpl --
++++     bpl ---
+        brk
 
-    brk
+---     bpl +
+--      bpl ++
+-       bpl +++
++       bpl ---
+++      bpl --
++++     bpl -
+        brk
 
-    bpl l2
-l2  nop
-    bpl l2
-    nop
-
-    brk
-
-    bpl +
--   nop
-+   bpl -
-    nop
-
-    brk
-
-    bpl +
--   nop
-    bpl -
-+   nop
-
-    brk
-
-    bpl l3
-    nop
-l3  bpl l3
-    nop
-
-    brk
-
-    bpl +
-    nop
--   bpl -
-+   nop
-
-    brk
-
-    bpl +
-    nop
-    bpl +
-+   nop
-
-    brk
-
-; --- misc (1st target >= 2nd target >= 3rd target) ------------------------------------------------
-
---  bpl ++
--   bpl +
-+   bpl -
-++  bpl --
-
-    brk
-
---  bpl +
--   bpl ++
-+   bpl --
-++  bpl -
-
-    brk
-
---- bpl +++
---  bpl ++
--   bpl +
-+   bpl -
-++  bpl --
-+++ bpl ---
-
-    brk
-
---- bpl +
---  bpl ++
--   bpl +++
-+   bpl ---
-++  bpl --
-+++ bpl -
-
-    brk
-
-; --------------------------------------------------------------------------------------------------
-
-    pad $10000, $ff
+        pad $10000, $ff
