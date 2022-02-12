@@ -21,14 +21,13 @@ python3 nesdisasm.py \
     -c test-in/gamegenie.cdl \
     test-in/gamegenie.bin > test-out/gamegenie.asm
 python3 nesdisasm.py \
-    -o 00,01,21,31,41,51,61,71,81,a1,c1,d1,e1,f1 \
     -a 0800-1fff,2008-3fff,4020-7fff -w 8002-ffef,fff2-ffff -x 2000-401f \
     test-in/gamegenie.bin > test-out/gamegenie-nocdl.asm
 python3 nesdisasm.py \
     -c test-in/excitebike-ju.cdl \
     test-in/excitebike-ju.bin > test-out/excitebike.asm
 python3 nesdisasm.py \
-    -z -o 00 \
+    -z \
     -a 0800-1fff,2008-3fff,4020-bfff -w 8000-ffff -x 2000-401f \
     test-in/excitebike-ju.bin > test-out/excitebike-nocdl.asm
 python3 nesdisasm.py \
@@ -39,7 +38,7 @@ python3 nesdisasm.py \
     -a 0800-1fff,2008-3fff,4020-bfff -w 8000-ffff -x 2000-401f \
     test-in/lunarpool-u.bin > test-out/lunarpool-nounacc.asm
 python3 nesdisasm.py \
-    -i 5 -z -o 00,01,41,c1,e1 \
+    -i 5 -z \
     -a 0800-1fff,2008-3fff,4020-bfff -w 8000-ffff -x 2000-401f \
     test-in/lunarpool-u.bin > test-out/lunarpool-nocdl.asm
 python3 nesdisasm.py \

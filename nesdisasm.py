@@ -149,12 +149,6 @@ def parse_arguments():
         "instruction also supports zero page addressing."
     )
     parser.add_argument(
-        "-o", "--no-opcodes", type=str, default="",
-        help="Assume the game never executes these opcodes. Zero or more opcodes separated by "
-        "commas. Each opcode is an 8-bit hexadecimal integer. E.g. '00,01' = BRK, ORA "
-        "(indirect,x)."
-    )
-    parser.add_argument(
         "-a", "--no-access", type=str, default="",
         help="Assume the game never interacts with these addresses (using any instruction with "
         "absolute addressing, or indexed absolute with these addresses as the base address). Zero "
@@ -245,19 +239,6 @@ def read_cdl_file(handle, prgSize):
         # end last chunk
         yield (range(chunkStart, prgSize), chunkType)
 
-def parse_opcodes(arg):
-    # generate integers from a string of comma-separated hexadecimal opcodes
-    if arg == "":
-        return None
-    for n in arg.split(","):
-        try:
-            n = int(n, 16)
-            if n not in OPCODES:
-                raise ValueError
-        except ValueError:
-            sys.exit("Invalid opcode.")
-        yield n
-
 def parse_address_ranges(arg):
     # generate ranges from a string of comma-separated 16-bit address ranges
     if arg == "":
@@ -318,7 +299,6 @@ def get_instruction_address_ranges(handle, cdlData, args):
 
     cdlCodeRanges = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
     cdlDataRanges = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
-    noOpcodes = set(parse_opcodes(args.no_opcodes))
     noAccess  = set(parse_address_ranges(args.no_access))
     noWrite   = set(parse_address_ranges(args.no_write))
     noExecute = set(parse_address_ranges(args.no_execute))
@@ -339,8 +319,8 @@ def get_instruction_address_ranges(handle, cdlData, args):
         # does the remaining PRG ROM start with an instruction?
         # (the long mess of code may or may not set this variable to True)
         isInstruction = False
-        # documented non-forbidden opcode?
-        if opcode in OPCODES and opcode not in noOpcodes:
+        # documented opcode?
+        if opcode in OPCODES:
             (mnemonic, addrMode) = OPCODES[opcode]
             operandSize = ADDRESSING_MODES[addrMode][0]
             # enough space left for operand; address not forbidden by CDL/--unaccessed-as-data?
