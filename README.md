@@ -34,9 +34,9 @@ Otherwise ASM6 would optimize the instruction to use zero page addressing instea
 
 ## Command line arguments
 ```
-usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [-z]
-                    [-a NO_ACCESS] [-w NO_WRITE] [-x NO_EXECUTE] [--unaccessed-as-data]
-                    [--no-anonymous-labels] [-l]
+usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [-a NO_ACCESS]
+                    [-w NO_WRITE] [-x NO_EXECUTE] [--unaccessed-as-data] [--no-anonymous-labels]
+                    [-l]
                     input_file
 
 An NES (6502) disassembler.
@@ -53,9 +53,6 @@ optional arguments:
                         How many spaces to use for indentation (1 to 100, default=8).
   -d DATA_BYTES_PER_LINE, --data-bytes-per-line DATA_BYTES_PER_LINE
                         How many data bytes to print per 'hex ...' line (1 to 100, default=8).
-  -z, --no-absolute-zeropage
-                        Assume the game never accesses the zero page using absolute addressing if
-                        the instruction also supports zero page addressing.
   -a NO_ACCESS, --no-access NO_ACCESS
                         Assume the game never interacts with these addresses (using any
                         instruction with absolute addressing, or indexed absolute with these
@@ -83,7 +80,7 @@ There's an example of the output in `sample-output.txt`.
 ## Hints
 * Use a CDL file for clearer output.
 If you can't, try these options to help the disassembler avoid disassembling bytes that make no sense as code:
-`-z, -a, -w, -x`
+`-a, -w, -x`
 * Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from CDL files.
 
 ## To do

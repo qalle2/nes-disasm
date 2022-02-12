@@ -27,22 +27,21 @@ python3 nesdisasm.py \
     -c test-in/excitebike-ju.cdl \
     test-in/excitebike-ju.bin > test-out/excitebike.asm
 python3 nesdisasm.py \
-    -z \
     -a 0800-1fff,2008-3fff,4020-bfff -w 8000-ffff -x 2000-401f \
     test-in/excitebike-ju.bin > test-out/excitebike-nocdl.asm
 python3 nesdisasm.py \
     -c test-in/lunarpool-u.cdl \
     test-in/lunarpool-u.bin > test-out/lunarpool.asm
 python3 nesdisasm.py \
-    -z -c test-in/lunarpool-u.cdl --unaccessed-as-data \
+    -c test-in/lunarpool-u.cdl --unaccessed-as-data \
     -a 0800-1fff,2008-3fff,4020-bfff -w 8000-ffff -x 2000-401f \
     test-in/lunarpool-u.bin > test-out/lunarpool-nounacc.asm
 python3 nesdisasm.py \
-    -i 5 -z \
+    -i 5 \
     -a 0800-1fff,2008-3fff,4020-bfff -w 8000-ffff -x 2000-401f \
     test-in/lunarpool-u.bin > test-out/lunarpool-nocdl.asm
 python3 nesdisasm.py \
-    -i 12 -d 16 -z -c test-in/smb1-w.cdl \
+    -i 12 -d 16 -c test-in/smb1-w.cdl \
     -a 0800-1fff,2008-3fff,4020-7fff -w 8000-ffff -x 2000-401f \
     test-in/smb1-w.bin > test-out/smb1.asm
 echo

@@ -144,11 +144,6 @@ def parse_arguments():
         help="How many data bytes to print per 'hex ...' line (1 to 100, default=8)."
     )
     parser.add_argument(
-        "-z", "--no-absolute-zeropage", action="store_true",
-        help="Assume the game never accesses the zero page using absolute addressing if the "
-        "instruction also supports zero page addressing."
-    )
-    parser.add_argument(
         "-a", "--no-access", type=str, default="",
         help="Assume the game never interacts with these addresses (using any instruction with "
         "absolute addressing, or indexed absolute with these addresses as the base address). Zero "
@@ -283,16 +278,6 @@ def decode_relative_address(pc, offset):
     assert 0x00 <= offset <= 0xff
     return pc + 2 - (offset & 0x80) + (offset & 0x7f)
 
-def is_abs_opcode_with_zp_equivalent(opcode):
-    # is the opcode an absolute/absolute,x/absolute,y opcode that has a zero page equivalent?
-
-    (mnemonic, addrMode) = OPCODES[opcode]
-    return (
-        addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
-        or addrMode == AM_ABX
-        or addrMode == AM_ABY and mnemonic == "ldx"
-    )
-
 def get_instruction_address_ranges(handle, cdlData, args):
     # generate PRG address ranges of instructions from a PRG file
     # cdlData: {address_range: chunk_type, ...}, yield: one range per call
@@ -332,11 +317,8 @@ def get_instruction_address_ranges(handle, cdlData, args):
                     # direct absolute
                     addr = decode_16bit_address(prgData[pos+1], prgData[pos+2])
                     isInstruction = not (
-                        # uses absolute instead of zero page?
-                        args.no_absolute_zeropage and addr <= 0xff
-                        and is_abs_opcode_with_zp_equivalent(opcode)
                         # accesses an excluded address?
-                        or any(addr in r for r in noAccess)
+                        any(addr in r for r in noAccess)
                         # writes an excluded address?
                         or mnemonic in (
                             "sta", "stx", "sty", "dec", "inc", "asl", "lsr", "rol", "ror"
@@ -566,6 +548,16 @@ def print_cdl_stats(cdlData, prgSize):
     print("; CDL file - instruction bytes:", instrByteCnt)
     print("; CDL file - data        bytes:", dataByteCnt)
     print("; CDL file - unaccessed  bytes:", unaccByteCnt)
+
+def is_abs_opcode_with_zp_equivalent(opcode):
+    # is the opcode an absolute/absolute,x/absolute,y opcode that has a zero page equivalent?
+
+    (mnemonic, addrMode) = OPCODES[opcode]
+    return (
+        addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
+        or addrMode == AM_ABX
+        or addrMode == AM_ABY and mnemonic == "ldx"
+    )
 
 def get_needed_macros(prgHandle, instrAddrRanges):
     # which macros need to be defined? return a set of opcodes
