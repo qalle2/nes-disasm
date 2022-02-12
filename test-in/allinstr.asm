@@ -261,4 +261,4 @@ label8  bvs label8+1
         hex c3 c7 cb cf d2 d3 d4 d7 da db dc df e2 e3 e7 eb
         hex ef f2 f3 f4 f7 fa fb fc ff
 
-        pad $10000
+        pad $10000, $ff

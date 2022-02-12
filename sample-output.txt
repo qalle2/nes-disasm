@@ -12,72 +12,8 @@
 ; === Macros ===
 
 ; force 16-bit addressing (absolute/absolute,x/absolute,y) with operands <= $ff
-
-macro ora_abs _zp
-        db $0d, _zp, $00
-endm
-macro asl_abs _zp
-        db $0e, _zp, $00
-endm
-macro ora_absx _zp
-        db $1d, _zp, $00
-endm
-macro asl_absx _zp
-        db $1e, _zp, $00
-endm
-macro bit_abs _zp
-        db $2c, _zp, $00
-endm
-macro and_abs _zp
-        db $2d, _zp, $00
-endm
-macro rol_abs _zp
-        db $2e, _zp, $00
-endm
-macro and_absx _zp
-        db $3d, _zp, $00
-endm
-macro rol_absx _zp
-        db $3e, _zp, $00
-endm
-macro eor_abs _zp
-        db $4d, _zp, $00
-endm
-macro lsr_abs _zp
-        db $4e, _zp, $00
-endm
-macro eor_absx _zp
-        db $5d, _zp, $00
-endm
-macro lsr_absx _zp
-        db $5e, _zp, $00
-endm
-macro adc_abs _zp
-        db $6d, _zp, $00
-endm
-macro ror_abs _zp
-        db $6e, _zp, $00
-endm
-macro adc_absx _zp
-        db $7d, _zp, $00
-endm
-macro ror_absx _zp
-        db $7e, _zp, $00
-endm
-macro sty_abs _zp
-        db $8c, _zp, $00
-endm
 macro sta_abs _zp
         db $8d, _zp, $00
-endm
-macro stx_abs _zp
-        db $8e, _zp, $00
-endm
-macro sta_absx _zp
-        db $9d, _zp, $00
-endm
-macro ldy_abs _zp
-        db $ac, _zp, $00
 endm
 macro lda_abs _zp
         db $ad, _zp, $00
@@ -85,44 +21,8 @@ endm
 macro ldx_abs _zp
         db $ae, _zp, $00
 endm
-macro ldy_absx _zp
-        db $bc, _zp, $00
-endm
-macro lda_absx _zp
-        db $bd, _zp, $00
-endm
-macro ldx_absy _zp
-        db $be, _zp, $00
-endm
-macro cpy_abs _zp
-        db $cc, _zp, $00
-endm
-macro cmp_abs _zp
-        db $cd, _zp, $00
-endm
 macro dec_abs _zp
         db $ce, _zp, $00
-endm
-macro cmp_absx _zp
-        db $dd, _zp, $00
-endm
-macro dec_absx _zp
-        db $de, _zp, $00
-endm
-macro cpx_abs _zp
-        db $ec, _zp, $00
-endm
-macro sbc_abs _zp
-        db $ed, _zp, $00
-endm
-macro inc_abs _zp
-        db $ee, _zp, $00
-endm
-macro sbc_absx _zp
-        db $fd, _zp, $00
-endm
-macro inc_absx _zp
-        db $fe, _zp, $00
 endm
 
 ; === Address constants at $0000-$7fff ===

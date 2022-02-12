@@ -304,6 +304,7 @@ def decode_relative_address(pc, offset):
 
 def is_abs_opcode_with_zp_equivalent(opcode):
     # is the opcode an absolute/absolute,x/absolute,y opcode that has a zero page equivalent?
+
     (mnemonic, addrMode) = OPCODES[opcode]
     return (
         addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
@@ -586,6 +587,28 @@ def print_cdl_stats(cdlData, prgSize):
     print("; CDL file - data        bytes:", dataByteCnt)
     print("; CDL file - unaccessed  bytes:", unaccByteCnt)
 
+def get_needed_macros(prgHandle, instrAddrRanges):
+    # which macros need to be defined? return a set of opcodes
+
+    instrAddresses = set(get_instruction_addresses(prgHandle, instrAddrRanges))
+    prgHandle.seek(0)
+    prgData = prgHandle.read()
+    pos = 0
+    # get opcodes for instructions that ASM6 would auto-optimize (2-byte operand <= $00ff, has a
+    # zeropage equivalent)
+    opcodes = set()
+    while pos < len(prgData):
+        if pos in instrAddresses:
+            # instruction
+            operandSize = ADDRESSING_MODES[OPCODES[prgData[pos]][1]][0]
+            if operandSize == 2 and prgData[pos+2] == 0:
+                opcodes.add(prgData[pos])
+            pos += 1 + operandSize
+        else:
+            # data
+            pos += 1
+    return {o for o in opcodes if is_abs_opcode_with_zp_equivalent(o)}
+
 def format_literal(n, bits=8, base=16):
     # format an ASM6 integer literal
     assert bits in (8, 16) and 0 <= n < 2 ** bits
@@ -712,8 +735,7 @@ def disassemble(handle, cdlData, args):
     print("; === Macros ===")
     print()
     print("; force 16-bit addressing (absolute/absolute,x/absolute,y) with operands <= $ff")
-    print()
-    for opcode in sorted(o for o in OPCODES if is_abs_opcode_with_zp_equivalent(o)):
+    for opcode in sorted(get_needed_macros(handle, instrAddrRanges)):
         (mnemonic, addrMode) = OPCODES[opcode]
         addrModeName = {AM_AB: "abs", AM_ABX: "absx", AM_ABY: "absy"}[addrMode]
         print(f"macro {mnemonic}_{addrModeName} _zp")
