@@ -35,8 +35,7 @@ Otherwise ASM6 would optimize the instruction to use zero page addressing instea
 ## Command line arguments
 ```
 usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [-a NO_ACCESS]
-                    [-w NO_WRITE] [-x NO_EXECUTE] [--unaccessed-as-data] [--no-anonymous-labels]
-                    [-l]
+                    [-w NO_WRITE] [--unaccessed-as-data] [--no-anonymous-labels] [-l]
                     input_file
 
 An NES (6502) disassembler.
@@ -65,10 +64,6 @@ optional arguments:
                         STA/STX/STY/DEC/INC/ASL/LSR/ROL/ROR with absolute addressing, or indexed
                         absolute with these addresses as the base address). Same syntax as in
                         --no-access. E.g. '8000-ffff' = PRG ROM.
-  -x NO_EXECUTE, --no-execute NO_EXECUTE
-                        Assume the game never runs code at these addresses (using JMP absolute or
-                        JSR). Same syntax as in --no-access. E.g. '2000-401f' = memory-mapped
-                        registers.
   --unaccessed-as-data  Output unaccessed bytes as data instead of trying to disassemble them.
   --no-anonymous-labels
                         Always use named labels instead of anonymous labels ('+' and '-').
@@ -78,9 +73,8 @@ optional arguments:
 There's an example of the output in `sample-output.txt`.
 
 ## Hints
-* Use a CDL file for clearer output.
-If you can't, try these options to help the disassembler avoid disassembling bytes that make no sense as code:
-`-a, -w, -x`
+* Using a CDL file and the `-a` and `-w` options makes the output a lot clearer.
+(They help the disassembler avoid disassembling bytes that make no sense as code.)
 * Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from CDL files.
 
 ## To do

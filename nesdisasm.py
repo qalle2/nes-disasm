@@ -158,11 +158,6 @@ def parse_arguments():
         "address). Same syntax as in --no-access. E.g. '8000-ffff' = PRG ROM."
     )
     parser.add_argument(
-        "-x", "--no-execute", type=str, default="",
-        help="Assume the game never runs code at these addresses (using JMP absolute or JSR). "
-        "Same syntax as in --no-access. E.g. '2000-401f' = memory-mapped registers."
-    )
-    parser.add_argument(
         "--unaccessed-as-data", action="store_true",
         help="Output unaccessed bytes as data instead of trying to disassemble them."
     )
@@ -284,9 +279,8 @@ def get_instruction_address_ranges(handle, cdlData, args):
 
     cdlCodeRanges = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
     cdlDataRanges = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
-    noAccess  = set(parse_address_ranges(args.no_access))
-    noWrite   = set(parse_address_ranges(args.no_write))
-    noExecute = set(parse_address_ranges(args.no_execute))
+    noAccess = set(parse_address_ranges(args.no_access))
+    noWrite  = set(parse_address_ranges(args.no_write))
 
     prgSize = handle.seek(0, 2)
     origin = 0x10000 - prgSize
@@ -324,9 +318,6 @@ def get_instruction_address_ranges(handle, cdlData, args):
                             "sta", "stx", "sty", "dec", "inc", "asl", "lsr", "rol", "ror"
                         )
                         and any(addr in r for r in noWrite)
-                        # executes an excluded address?
-                        or (mnemonic == "jmp" and addrMode == AM_AB or mnemonic =="jsr") \
-                        and any(addr in r for r in noExecute)
                     )
                 elif addrMode == AM_R:
                     # relative (target must be within PRG ROM)
