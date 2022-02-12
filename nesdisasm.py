@@ -586,9 +586,12 @@ def print_cdl_stats(cdlData, prgSize):
     print("; CDL file - data        bytes:", dataByteCnt)
     print("; CDL file - unaccessed  bytes:", unaccByteCnt)
 
-def format_literal(n, bits=8):
+def format_literal(n, bits=8, base=16):
     # format an ASM6 integer literal
     assert bits in (8, 16) and 0 <= n < 2 ** bits
+    assert base in (2, 16)
+    if base == 2:
+        return f"%{n:08b}"
     return f"${n:02x}" if bits == 8 else f"${n:04x}"
 
 def print_data_line(label, bytes_, origin, prgAddr, cdlDataRanges, args):
@@ -641,7 +644,8 @@ def format_operand_value(instrBytes, prgAddr, labels):
     if addrMode in (AM_IMP, AM_AC):
         return ""
     if addrMode == AM_IMM:
-        return format_literal(instrBytes[1])
+        base = 2 if mnemonic in ("and", "eor", "ora") else 16
+        return format_literal(instrBytes[1], 8, base)
     if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
         # 1-byte address
         addr = instrBytes[1]

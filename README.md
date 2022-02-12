@@ -91,7 +91,6 @@ If you can't, try these options to help the disassembler avoid disassembling byt
 * Use my [cdl-summary](https://github.com/qalle2/cdl-summary) to extract more info from CDL files.
 
 ## To do
-* print immediate operand of AND/EOR/ORA in binary
 * automatically print CLC followed by ADC as a macro; same for SEC and SBC
 * allow more anonymous labels (e.g. allow an anonymous forward jump to cross an anonymous backward jump and vice versa)
 * better support for CDL files (e.g. print "indirectly accessed" in comments)
