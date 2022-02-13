@@ -283,8 +283,8 @@ def decode_relative_address(pc, offset):
     assert 0x00 <= offset <= 0xff
     return pc + 2 - (offset & 0x80) + (offset & 0x7f)
 
-def get_instruction_address_ranges(handle, cdlData, args):
-    # generate PRG address ranges of instructions from a PRG file
+def get_instruction_address_ranges(prgData, cdlData, args):
+    # generate PRG address ranges of instructions from PRG data
     # cdlData: {address_range: chunk_type, ...}, yield: one range per call
 
     cdlCodeRanges = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
@@ -292,17 +292,13 @@ def get_instruction_address_ranges(handle, cdlData, args):
     noAccess = set(parse_address_ranges(args.no_access))
     noWrite  = set(parse_address_ranges(args.no_write))
 
-    prgSize = handle.seek(0, 2)
-    origin = 0x10000 - prgSize
-
-    handle.seek(0)
-    prgData = handle.read()
+    origin = 0x10000 - len(prgData)
 
     codeStart = None  # start of current code chunk
     pos = 0  # position in PRG data
 
     # quite similar to main loops elsewhere
-    while pos < prgSize:
+    while pos < len(prgData):
         opcode = prgData[pos]
 
         # does the remaining PRG ROM start with an instruction?
@@ -313,7 +309,7 @@ def get_instruction_address_ranges(handle, cdlData, args):
             (mnemonic, addrMode) = OPCODES[opcode]
             operandSize = ADDRESSING_MODES[addrMode][0]
             # enough space left for operand; address not forbidden by CDL/--unaccessed-as-data?
-            if prgSize - pos >= 1 + operandSize and instruction_allowed_at_address(
+            if len(prgData) - pos >= 1 + operandSize and instruction_allowed_at_address(
                 range(pos, pos + 1 + operandSize), cdlCodeRanges, cdlDataRanges, args
             ):
                 # validate operand
@@ -331,7 +327,7 @@ def get_instruction_address_ranges(handle, cdlData, args):
                     )
                 elif addrMode == AM_R:
                     # relative (target must be within PRG ROM)
-                    if 0 <= decode_relative_address(pos, prgData[pos+1]) < prgSize:
+                    if 0 <= decode_relative_address(pos, prgData[pos+1]) < len(prgData):
                         isInstruction = True
                 else:
                     # indirect or less than two bytes
@@ -352,22 +348,17 @@ def get_instruction_address_ranges(handle, cdlData, args):
 
     if codeStart is not None:
         # end last code chunk
-        yield range(codeStart, prgSize)
+        yield range(codeStart, len(prgData))
 
-def get_instruction_addresses(handle, instrAddrRanges):
+def get_instruction_addresses(prgData, instrAddrRanges):
     # generate PRG addresses of instructions
     # instrAddrRanges: set of PRG address ranges
 
-    for rng in sorted(instrAddrRanges, key=lambda r: r.start):
-        handle.seek(rng.start)
-        chunk = handle.read(len(rng))
-        pos = 0  # within range
-        while pos < len(rng):
-            yield rng.start + pos
-            opcode = chunk[pos]
-            addrMode = OPCODES[opcode][1]
-            operandSize = ADDRESSING_MODES[addrMode][0]
-            pos += 1 + operandSize
+    for rng in instrAddrRanges:
+        pos = rng.start
+        while pos < rng.stop:
+            yield pos
+            pos += 1 + ADDRESSING_MODES[OPCODES[prgData[pos]][1]][0]  # operand size
 
 def get_access_method(mnemonic, addrMode):
     # how does the instruction access its operand; see enumeration
@@ -380,8 +371,8 @@ def get_access_method(mnemonic, addrMode):
         return ACME_CODE
     return ACME_DATA
 
-def get_label_stats(handle, instrAddrRanges, args):
-    # get addresses and statistics of labels from a PRG file
+def get_label_stats(prgData, instrAddrRanges, args):
+    # get addresses and statistics of labels from PRG data
     # instrAddrRanges: set of PRG address ranges
     # return: {
     #     CPU_address: [
@@ -392,15 +383,10 @@ def get_label_stats(handle, instrAddrRanges, args):
     instrAddresses = set()  # PRG addresses of instructions
     labelStats = {}  # see function description
 
-    prgSize = handle.seek(0, 2)
-    origin = 0x10000 - prgSize
-
-    handle.seek(0)
-    prgData = handle.read()
-
+    origin = 0x10000 - len(prgData)
     pos = 0  # position in PRG ROM
 
-    for pos in get_instruction_addresses(handle, instrAddrRanges):
+    for pos in get_instruction_addresses(prgData, instrAddrRanges):
         instrAddresses.add(pos)
 
         opcode = prgData[pos]
@@ -468,10 +454,10 @@ def get_anon_labels_backwards(prgCodeLabels, labelStats, anonLabelsForwards):
         ):
             yield addr
 
-def get_label_names(handle, instrAddrRanges, args):
-    # handle: PRG file, instrAddrRanges: set of ranges, yield: (CPU_address, name)
+def get_label_names(prgData, instrAddrRanges, args):
+    # instrAddrRanges: set of ranges, yield: (CPU_address, name)
 
-    labelStats = get_label_stats(handle, instrAddrRanges, args)
+    labelStats = get_label_stats(prgData, instrAddrRanges, args)
 
     # 0x0000-0x1fff
     RAMLabels = {addr for addr in labelStats if addr <= 0x1fff}
@@ -560,12 +546,10 @@ def is_abs_opcode_with_zp_equivalent(opcode):
         or addrMode == AM_ABY and mnemonic == "ldx"
     )
 
-def get_needed_macros(prgHandle, instrAddrRanges):
+def get_needed_macros(prgData, instrAddrRanges):
     # which macros need to be defined? return a set of opcodes
 
-    instrAddresses = set(get_instruction_addresses(prgHandle, instrAddrRanges))
-    prgHandle.seek(0)
-    prgData = prgHandle.read()
+    instrAddresses = set(get_instruction_addresses(prgData, instrAddrRanges))
     pos = 0
     # get opcodes for instructions that ASM6 would auto-optimize (2-byte operand <= $00ff, has a
     # zeropage equivalent)
@@ -680,35 +664,31 @@ def print_instruction(label, cpuAddr, instrBytes, operand, isUnaccessed, args):
         + ((9 - len(instrBytesHex)) * " " + "(unaccessed)" if isUnaccessed else "")
     )
 
-def disassemble(handle, cdlData, args):
-    # disassemble PRG file
+def disassemble(prgData, cdlData, args):
+    # disassemble PRG data
     # cdlData: {PRG_address_range: chunk_type, ...}, return: None
 
     # ranges of PRG addresses
-    instrAddrRanges = set(get_instruction_address_ranges(handle, cdlData, args))
+    instrAddrRanges = set(get_instruction_address_ranges(prgData, cdlData, args))
 
     # {CPU_address: name, ...}
-    labels = dict(get_label_names(handle, instrAddrRanges, args))
+    labels = dict(get_label_names(prgData, instrAddrRanges, args))
 
-    prgSize = handle.seek(0, 2)
-    origin = 0x10000 - prgSize
-
-    print("; Input file:", os.path.basename(handle.name))
     instrByteCnt = sum(len(rng) for rng in instrAddrRanges)
     print("; Bytes:")
     print("; - instruction:", instrByteCnt)
-    print("; - data       :", prgSize - instrByteCnt)
+    print("; - data       :", len(prgData) - instrByteCnt)
     anonLabelCnt = sum(1 for a in labels if labels[a] in ("+", "-"))
     print("; Labels:")
     print("; - named    :", len(labels) - anonLabelCnt)
     print("; - anonymous:", anonLabelCnt)
-    print_cdl_stats(cdlData, prgSize)
+    print_cdl_stats(cdlData, len(prgData))
     print()
 
     print("; === Macros ===")
     print()
     print("; force 16-bit addressing (absolute/absolute,x/absolute,y) with operands <= $ff")
-    for opcode in sorted(get_needed_macros(handle, instrAddrRanges)):
+    for opcode in sorted(get_needed_macros(prgData, instrAddrRanges)):
         (mnemonic, addrMode) = OPCODES[opcode]
         addrModeName = {AM_AB: "abs", AM_ABX: "absx", AM_ABY: "absy"}[addrMode]
         print(f"macro {mnemonic}_{addrModeName} _zp")
@@ -726,25 +706,24 @@ def disassemble(handle, cdlData, args):
         print(f"{name:15s} equ " + format_literal(addr, 8 if addr <= 0xff else 16))
     print()
 
-    print(f"; === PRG ROM (CPU ${origin:04x}-${origin+prgSize-1:04x}) ===")
+    origin = 0x10000 - len(prgData)
+
+    print(f"; === PRG ROM (CPU ${origin:04x}-${origin+len(prgData)-1:04x}) ===")
     print()
     print("; labels: 'sub' = subroutine, 'cod' = code, 'dat' = data")
     print()
     print(args.indentation * " " + "org " + format_literal(origin, 16))
     print()
 
-    instrAddresses = set(get_instruction_addresses(handle, instrAddrRanges))
+    instrAddresses = set(get_instruction_addresses(prgData, instrAddrRanges))
     cdlCodeRanges = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
     cdlDataRanges = {rng for rng in cdlData if cdlData[rng] in (CDL_INDIR_DATA, CDL_DATA)}
-
-    handle.seek(0)
-    prgData = handle.read()
 
     pos = 0  # position in PRG data
     dataStart = None  # where current string of data bytes started
     prevBlockWasData = False
 
-    while pos < prgSize:
+    while pos < len(prgData):
         if pos in instrAddresses:
             # instruction
 
@@ -817,12 +796,14 @@ def main():
     else:
         cdlData = dict()
 
-    # disassemble PRG file
+    # read PRG file
     try:
         with open(args.input_file, "rb") as handle:
-            disassemble(handle, cdlData, args)
+            handle.seek(0)
+            prgData = handle.read()
     except OSError:
         sys.exit("Error reading PRG file.")
 
-if __name__ == "__main__":
-    main()
+    disassemble(prgData, cdlData, args)
+
+main()
