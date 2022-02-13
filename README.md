@@ -81,5 +81,7 @@ There's an example of the output in `sample-output.txt`.
 ## To do
 * automatically print CLC followed by ADC as a macro; same for SEC and SBC
 * allow more anonymous labels (e.g. allow an anonymous forward jump to cross an anonymous backward jump and vice versa)
-* distinguish between indirectly and directly accessed data/code
+* distinguish between indirectly and directly accessed data in the disassembly itself
+(we already make the distinction in the statistics)
+* distinguish between indirectly and directly accessed code
 * to implement the above, CDL support may need to be integrated better (perhaps combine `CDL_*` and `ACME_*`)
