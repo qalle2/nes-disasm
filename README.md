@@ -47,7 +47,8 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -c CDL_FILE, --cdl-file CDL_FILE
-                        The FCEUX code/data log file (.cdl) to read.
+                        The FCEUX code/data log file (.cdl) to read. (If you don't specify one,
+                        all PRG ROM bytes will be considered unaccessed.)
   -i INDENTATION, --indentation INDENTATION
                         How many spaces to use for indentation (1 to 100, default=8).
   -d DATA_BYTES_PER_LINE, --data-bytes-per-line DATA_BYTES_PER_LINE
@@ -80,4 +81,5 @@ There's an example of the output in `sample-output.txt`.
 ## To do
 * automatically print CLC followed by ADC as a macro; same for SEC and SBC
 * allow more anonymous labels (e.g. allow an anonymous forward jump to cross an anonymous backward jump and vice versa)
-* better support for CDL files (e.g. print "indirectly accessed" in comments)
+* distinguish between indirectly and directly accessed data/code
+* to implement the above, CDL support may need to be integrated better (perhaps combine `CDL_*` and `ACME_*`)

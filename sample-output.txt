@@ -1,13 +1,14 @@
 ; Input file: gamegenie.bin
-; Bytes - total      : 4096
-; Bytes - instruction: 3492
-; Bytes - data       : 604
-; Labels - total    : 396
-; Labels - named    : 294
-; Labels - anonymous: 102
-; CDL file - instruction bytes: 3458
-; CDL file - data        bytes: 597
-; CDL file - unaccessed  bytes: 41
+; Bytes:
+; - instruction: 3492
+; - data       : 604
+; Labels:
+; - named    : 294
+; - anonymous: 102
+; Bytes in CDL file:
+; - instruction: 3458
+; - data       : 597
+; - unaccessed : 41
 
 ; === Macros ===
 

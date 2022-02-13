@@ -117,6 +117,10 @@ assert all(0x2000 <= r <= 0x401f for r in HARDWARE_REGISTERS)
     ACME_DATA,   # data (none of the above)
 ) = range(4)
 
+# bitmasks for CDL bytes
+CDL_CODE_MASK = 1 << 0
+CDL_DATA_MASK = 1 << 1
+
 def list_opcodes():
     # list supported opcodes
     for opcode in sorted(OPCODES):
@@ -133,7 +137,8 @@ def parse_arguments():
 
     parser.add_argument(
         "-c", "--cdl-file", type=str, default="",
-        help="The FCEUX code/data log file (.cdl) to read."
+        help="The FCEUX code/data log file (.cdl) to read. (If you don't specify one, all PRG "
+        "ROM bytes will be considered unaccessed.)"
     )
     parser.add_argument(
         "-i", "--indentation", type=int, default=8,
@@ -208,9 +213,9 @@ def read_cdl_file(handle, prgSize):
     chunkType = CDL_UNACCESSED  # type of current chunk
 
     for (pos, byte) in enumerate(cdlData):
-        if byte & 0x1:
+        if byte & CDL_CODE_MASK:
             byteType = CDL_CODE
-        elif byte & 0x02:
+        elif byte & CDL_DATA_MASK:
             byteType = CDL_DATA
         else:
             byteType = CDL_UNACCESSED
@@ -530,15 +535,13 @@ def get_label_names(handle, instrAddrRanges, args):
     yield from ((addr, f"dat{i+1}") for (i, addr) in enumerate(addresses))
 
 def print_cdl_stats(cdlData, prgSize):
-    if not cdlData:
-        print("; No CDL file was used.")
-        return
     instrByteCnt = sum(len(rng) for rng in cdlData if cdlData[rng] == CDL_CODE)
-    dataByteCnt = sum(len(rng) for rng in cdlData if cdlData[rng] == CDL_DATA)
+    dataByteCnt  = sum(len(rng) for rng in cdlData if cdlData[rng] == CDL_DATA)
     unaccByteCnt = prgSize - instrByteCnt - dataByteCnt
-    print("; CDL file - instruction bytes:", instrByteCnt)
-    print("; CDL file - data        bytes:", dataByteCnt)
-    print("; CDL file - unaccessed  bytes:", unaccByteCnt)
+    print("; Bytes in CDL file:")
+    print("; - instruction:", instrByteCnt)
+    print("; - data       :", dataByteCnt)
+    print("; - unaccessed :", unaccByteCnt)
 
 def is_abs_opcode_with_zp_equivalent(opcode):
     # is the opcode an absolute/absolute,x/absolute,y opcode that has a zero page equivalent?
@@ -588,7 +591,7 @@ def print_data_line(label, bytes_, origin, prgAddr, cdlDataRanges, args):
         label = ""
 
     maxInstructionWidth = args.data_bytes_per_line * 3 + 5
-    isUnaccessed = cdlDataRanges and not any(prgAddr in rng for rng in cdlDataRanges)
+    isUnaccessed = not any(prgAddr in rng for rng in cdlDataRanges)
 
     print(
         format(label, f"{args.indentation}s")
@@ -685,13 +688,13 @@ def disassemble(handle, cdlData, args):
 
     print("; Input file:", os.path.basename(handle.name))
     instrByteCnt = sum(len(rng) for rng in instrAddrRanges)
-    print("; Bytes - total      :", prgSize)
-    print("; Bytes - instruction:", instrByteCnt)
-    print("; Bytes - data       :", prgSize - instrByteCnt)
+    print("; Bytes:")
+    print("; - instruction:", instrByteCnt)
+    print("; - data       :", prgSize - instrByteCnt)
     anonLabelCnt = sum(1 for a in labels if labels[a] in ("+", "-"))
-    print("; Labels - total    :", len(labels))
-    print("; Labels - named    :", len(labels) - anonLabelCnt)
-    print("; Labels - anonymous:", anonLabelCnt)
+    print("; Labels:")
+    print("; - named    :", len(labels) - anonLabelCnt)
+    print("; - anonymous:", anonLabelCnt)
     print_cdl_stats(cdlData, prgSize)
     print()
 
@@ -752,7 +755,7 @@ def disassemble(handle, cdlData, args):
             (operandSize, operandFormat) = ADDRESSING_MODES[OPCODES[prgData[pos]][1]]
             instrBytes = prgData[pos:pos+1+operandSize]  # opcode + operand
             operand = operandFormat.format(format_operand_value(instrBytes, origin + pos, labels))
-            isUnaccessed = cdlData and not any(pos in r for r in cdlCodeRanges)
+            isUnaccessed = not any(pos in r for r in cdlCodeRanges)
 
             print_instruction(label, origin + pos, instrBytes, operand, isUnaccessed, args)
 
