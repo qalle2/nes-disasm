@@ -35,7 +35,7 @@ Otherwise ASM6 would optimize the instruction to use zero page addressing instea
 ## Command line arguments
 ```
 usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [-a NO_ACCESS]
-                    [-w NO_WRITE] [--unaccessed-as-data] [--no-anonymous-labels] [-l]
+                    [-w NO_WRITE] [--no-anonymous-labels] [-l]
                     input_file
 
 An NES (6502) disassembler.
@@ -65,7 +65,6 @@ optional arguments:
                         STA/STX/STY/DEC/INC/ASL/LSR/ROL/ROR with absolute addressing, or indexed
                         absolute with these addresses as the base address). Same syntax as in
                         --no-access. E.g. '8000-ffff' = PRG ROM.
-  --unaccessed-as-data  Output unaccessed bytes as data instead of trying to disassemble them.
   --no-anonymous-labels
                         Always use named labels instead of anonymous labels ('+' and '-').
   -l, --list-opcodes    List supported opcodes and exit. (Note: specify a dummy input file.)

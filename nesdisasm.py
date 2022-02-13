@@ -165,10 +165,6 @@ def parse_arguments():
         "address). Same syntax as in --no-access. E.g. '8000-ffff' = PRG ROM."
     )
     parser.add_argument(
-        "--unaccessed-as-data", action="store_true",
-        help="Output unaccessed bytes as data instead of trying to disassemble them."
-    )
-    parser.add_argument(
         "--no-anonymous-labels", action="store_true",
         help="Always use named labels instead of anonymous labels ('+' and '-')."
     )
@@ -255,20 +251,16 @@ def parse_address_ranges(arg):
             sys.exit("Invalid value in address range.")
         yield range(parts[0], parts[1] + 1)
 
-def instruction_allowed_at_address(addrRange, cdlCodeRanges, cdlDataRanges, args):
-    # is an instruction allowed at addrRange according to CDL file and --unaccessed-as-data?
-    # accept if condition 1 or both 2 and 3:
-    #   1. all bytes were accessed as code
-    #   2. unaccessed code should be disassembled
-    #   3. all bytes were unaccessed
-    # (comments denoting unaccessed code cannot be "inside" instructions)
+def instruction_allowed_at_address(addrRange, cdlCodeRanges, cdlDataRanges):
+    # does the CDL data allow an instruction at addrRange?
+    # either all bytes must be code or all bytes must be unaccessed
+    # (comments denoting unaccessed code can only be printed at the start of each instruction)
 
     return any(
-        addrRange.start in rng and addrRange.stop - 1 in rng
-        for rng in cdlCodeRanges
-    ) or not args.unaccessed_as_data and not any(
-        any(addr in r for r in cdlCodeRanges) or any(addr in r for r in cdlDataRanges)
-        for addr in addrRange
+        addrRange.start in r and addrRange.stop - 1 in r for r in cdlCodeRanges
+    ) or not any(
+        any(a in r for r in cdlCodeRanges) or any(a in r for r in cdlDataRanges)
+        for a in addrRange
     )
 
 def decode_16bit_address(byte1, byte2):
@@ -308,9 +300,9 @@ def get_instruction_address_ranges(prgData, cdlData, args):
         if opcode in OPCODES:
             (mnemonic, addrMode) = OPCODES[opcode]
             operandSize = ADDRESSING_MODES[addrMode][0]
-            # enough space left for operand; address not forbidden by CDL/--unaccessed-as-data?
+            # enough space left for operand; address not forbidden by CDL file?
             if len(prgData) - pos >= 1 + operandSize and instruction_allowed_at_address(
-                range(pos, pos + 1 + operandSize), cdlCodeRanges, cdlDataRanges, args
+                range(pos, pos + 1 + operandSize), cdlCodeRanges, cdlDataRanges
             ):
                 # validate operand
                 if addrMode in (AM_AB, AM_ABX, AM_ABY):
@@ -776,26 +768,6 @@ def disassemble(prgData, cdlData, args):
 def main():
     args = parse_arguments()
 
-    # get PRG file size
-    try:
-        prgSize = os.path.getsize(args.input_file)
-    except OSError:
-        sys.exit("Error getting PRG file size.")
-    if not 1 <= prgSize <= 32 * 1024:
-        sys.exit("Invalid PRG file size.")
-
-    # read CDL file
-    if args.cdl_file:
-        try:
-            if os.path.getsize(args.cdl_file) < prgSize:
-                sys.exit("The CDL file must be at least as large as the PRG file.")
-            with open(args.cdl_file, "rb") as handle:
-                cdlData = dict(read_cdl_file(handle, prgSize))
-        except OSError:
-            sys.exit("Error reading CDL file.")
-    else:
-        cdlData = dict()
-
     # read PRG file
     try:
         with open(args.input_file, "rb") as handle:
@@ -803,6 +775,21 @@ def main():
             prgData = handle.read()
     except OSError:
         sys.exit("Error reading PRG file.")
+
+    if not 1 <= len(prgData) <= 32 * 1024:
+        sys.exit("Invalid PRG file size.")
+
+    # read CDL file
+    if args.cdl_file:
+        try:
+            if os.path.getsize(args.cdl_file) < len(prgData):
+                sys.exit("The CDL file must be at least as large as the PRG file.")
+            with open(args.cdl_file, "rb") as handle:
+                cdlData = dict(read_cdl_file(handle, len(prgData)))
+        except OSError:
+            sys.exit("Error reading CDL file.")
+    else:
+        cdlData = dict()
 
     disassemble(prgData, cdlData, args)
 

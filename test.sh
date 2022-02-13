@@ -33,10 +33,6 @@ python3 nesdisasm.py \
     -c test-in/lunarpool-u.cdl \
     test-in/lunarpool-u.bin > test-out/lunarpool.asm
 python3 nesdisasm.py \
-    -c test-in/lunarpool-u.cdl --unaccessed-as-data \
-    -a 0800-1fff,2008-3fff,4020-bfff -w 8000-ffff \
-    test-in/lunarpool-u.bin > test-out/lunarpool-nounacc.asm
-python3 nesdisasm.py \
     -i 5 \
     -a 0800-1fff,2008-3fff,4020-bfff -w 8000-ffff \
     test-in/lunarpool-u.bin > test-out/lunarpool-nocdl.asm
@@ -55,8 +51,7 @@ asm6 test-out/gamegenie-nocdl.asm   test-out/gamegenie2.bin
 asm6 test-out/excitebike.asm        test-out/excitebike.bin
 asm6 test-out/excitebike-nocdl.asm  test-out/excitebike2.bin
 asm6 test-out/lunarpool.asm         test-out/lunarpool.bin
-asm6 test-out/lunarpool-nounacc.asm test-out/lunarpool2.bin
-asm6 test-out/lunarpool-nocdl.asm   test-out/lunarpool3.bin
+asm6 test-out/lunarpool-nocdl.asm   test-out/lunarpool2.bin
 asm6 test-out/smb1.asm              test-out/smb1.bin
 echo
 
@@ -70,7 +65,6 @@ diff -q test-in/excitebike-ju.bin test-out/excitebike.bin
 diff -q test-in/excitebike-ju.bin test-out/excitebike2.bin
 diff -q test-in/lunarpool-u.bin   test-out/lunarpool.bin
 diff -q test-in/lunarpool-u.bin   test-out/lunarpool2.bin
-diff -q test-in/lunarpool-u.bin   test-out/lunarpool3.bin
 diff -q test-in/smb1-w.bin        test-out/smb1.bin
 echo
 
