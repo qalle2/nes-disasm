@@ -1,6 +1,15 @@
 # nes-disasm
 An NES (6502) disassembler. The output is compatible with [ASM6](https://github.com/qalle2/asm6).
 
+Table of contents:
+* [Labels](#labels)
+* [CDL files](#cdl-files)
+* [Macros](#macros)
+* [Limitations](#limitations)
+* [Command line arguments](#command-line-arguments)
+* [Hints](#hints)
+* [To do](#to-do)
+
 ## Labels
 The disassembler automatically assigns labels to addresses:
 * RAM (including mirrors, i.e. `$0000-$1fff`):
@@ -15,7 +24,7 @@ The disassembler automatically assigns labels to addresses:
   * `+`, `-`: anonymous code labels (only accessed with nearby JMP absolute or branch instructions, with no other labels in between; use `--no-anonymous-labels` to disable).
   * `dat1`, `dat2`, ...: data (never accessed with JSR, JMP absolute or a branch instruction).
 
-## CDL file support
+## CDL files
 The disassembler has a limited support for log files created with FCEUX Code/Data Logger (`.cdl`). If a CDL file is used, PRG ROM bytes are treated as follows according to their corresponding CDL bytes:
   * CDL byte `0bxxxxxxx1` (code or both code and data): attempt to disassemble.
   * CDL byte `0bxxxxxx10` (data only): output as data (`hex ...`).
