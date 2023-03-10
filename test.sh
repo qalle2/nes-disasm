@@ -57,3 +57,4 @@ md5sum -c --quiet hashes.md5
 echo
 
 rm -f test-out/*.bin
+cp test-out/gamegenie.asm sample-output.txt
