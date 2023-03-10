@@ -1,6 +1,6 @@
 ; test all opcodes
 
-; --- 1-byte instructions -------------------------------------------------------------------------
+; --- 1-byte instructions -----------------------------------------------------
 
         base $fd00
 
@@ -34,7 +34,7 @@
         txs
         tya
 
-; --- 2-byte instructions -------------------------------------------------------------------------
+; --- 2-byte instructions -----------------------------------------------------
 
         adc #$ff
         adc $ff
@@ -139,9 +139,10 @@ label8  bvs label8+1
         sty $ff
         sty $ff,x
 
-; --- 3-byte instructions -------------------------------------------------------------------------
+; --- 3-byte instructions -----------------------------------------------------
 
-        ; note: some instructions have been written as bytes to prevent ASM6 from optimizing them
+        ; note: some instructions have been written as bytes to prevent ASM6
+        ; from optimizing them
 
         adc $beef
         adc $beef,x
@@ -251,7 +252,7 @@ label8  bvs label8+1
         sty $beef
         hex 8c ff 00  ; sty $00ff
 
-; --- Undocumented opcodes ------------------------------------------------------------------------
+; --- Undocumented opcodes ----------------------------------------------------
 
         hex 02 03 04 07 0b 0c 0f 12 13 14 17 1a 1b 1c 1f 22
         hex 23 27 2b 2f 32 33 34 37 3a 3b 3c 3f 42 43 44 47

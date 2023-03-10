@@ -26,9 +26,9 @@ The disassembler automatically assigns labels to addresses:
 
 ## CDL files
 The disassembler has a limited support for log files created with FCEUX Code/Data Logger (`.cdl`). If a CDL file is used, PRG ROM bytes are treated as follows according to their corresponding CDL bytes:
-  * CDL byte `0bxxxxxxx1` (code or both code and data): attempt to disassemble.
-  * CDL byte `0bxxxxxx10` (data only): output as data (`hex ...`).
-  * CDL byte `0b00000000` (unaccessed): attempt to disassemble, or if `--unaccessed-as-data` is used, output as data; in either case, add `(unaccessed)` to comment.
+* CDL byte `0bxxxxxxx1` (code or both code and data): attempt to disassemble.
+* CDL byte `0bxxxxxx10` (data only): output as data (`hex ...`).
+* CDL byte `0b00000000` (unaccessed): attempt to disassemble, or if `--unaccessed-as-data` is used, output as data; in either case, add `(unaccessed)` to the comment.
 
 ## Macros
 If the file to be disassembled unnecessarily uses 16-bit addressing (absolute/absolute,x/absolute,y) with operands less than or equal to `$ff`,

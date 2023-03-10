@@ -1,13 +1,13 @@
 ; test anonymous labels (the BRK instructions are for readability)
 
-; --- BPL -----------------------------------------------------------------------------------------
+; --- BPL ---------------------------------------------------------------------
 
         base $ff00
 
 -       bpl -
         brk
 
-; --- BPL, BPL, NOP (1st target >= 2nd target) ----------------------------------------------------
+; --- BPL, BPL, NOP (1st target >= 2nd target) --------------------------------
 
 -       bpl -
         bpl -
@@ -39,7 +39,7 @@ label1  bpl label1
 +       nop
         brk
 
-; --- BPL, NOP, BPL, NOP (1st target >= 2nd target) -----------------------------------------------
+; --- BPL, NOP, BPL, NOP (1st target >= 2nd target) ---------------------------
 
 -       bpl -
         nop
@@ -101,7 +101,7 @@ label3  bpl label3
 +       nop
         brk
 
-; --- misc (1st target >= 2nd target >= 3rd target) -----------------------------------------------
+; --- misc (1st target >= 2nd target >= 3rd target) ---------------------------
 
 --      bpl ++
 -       bpl +
