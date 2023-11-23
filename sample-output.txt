@@ -9,7 +9,7 @@
 ; - data         : 597
 ; - unaccessed   : 41
 
-; === Macros ===
+; --- Macros ------------------------------------------------------------------
 
 ; force 16-bit addressing (absolute/absolute,x/absolute,y) with
 ; operands <= $ff
@@ -26,7 +26,7 @@ macro dec_abs _zp
         db $ce, _zp, $00
 endm
 
-; === Address constants at $0000-$7fff ===
+; --- Address constants at $0000-$7fff ----------------------------------------
 
 ; 'arr' = RAM array, 'ram' = RAM non-array, 'misc' = $2000-$7fff
 ; note: unused hardware registers commented out
@@ -221,7 +221,7 @@ joypad2         equ $4017
 ;cpu_timer3     equ $401e
 ;cpu_timer4     equ $401f
 
-; === PRG ROM (CPU $f000-$ffff) ===
+; --- PRG ROM (CPU $f000-$ffff) -----------------------------------------------
 
 ; labels: 'sub' = subroutine, 'cod' = code, 'dat' = data
 
