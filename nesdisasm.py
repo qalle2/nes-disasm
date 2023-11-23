@@ -126,9 +126,8 @@ assert all(0x2000 <= r <= 0x401f for r in HARDWARE_REGISTERS)
 (
     CDL_UNACCESSED,  # not accessed
     CDL_CODE,        # accessed as code (and possibly also as data)
-    CDL_INDIR_DATA,  # accessed as indirect data (and possibly as direct data)
-    CDL_DATA,        # accessed as direct data only
-) = range(4)
+    CDL_DATA,        # accessed as data only
+) = range(3)
 
 # enumerate label access methods
 (
@@ -139,9 +138,8 @@ assert all(0x2000 <= r <= 0x401f for r in HARDWARE_REGISTERS)
 ) = range(4)
 
 # bitmasks for CDL bytes
-CDL_CODE_MASK          = 1 << 0
-CDL_DATA_MASK          = 1 << 1
-CDL_INDIRECT_DATA_MASK = 1 << 5
+CDL_CODE_MASK = 0b00000001
+CDL_DATA_MASK = 0b00000010
 
 def list_opcodes():
     # list supported opcodes
@@ -223,8 +221,6 @@ def parse_args():
 def get_cdl_byte_type(byte):
     if byte & CDL_CODE_MASK:
         return CDL_CODE
-    if byte & CDL_DATA_MASK and byte & CDL_INDIRECT_DATA_MASK:
-        return CDL_INDIR_DATA
     if byte & CDL_DATA_MASK:
         return CDL_DATA
     return CDL_UNACCESSED
@@ -308,9 +304,7 @@ def get_instr_addr_ranges(prgData, cdlData, args):
     # cdlData: {address_range: chunk_type, ...}, yield: one range per call
 
     cdlCodeRngs = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
-    cdlDataRngs = {
-        rng for rng in cdlData if cdlData[rng] in (CDL_INDIR_DATA, CDL_DATA)
-    }
+    cdlDataRngs = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
     noAccess = set(parse_addr_ranges(args.no_access))
     noWrite  = set(parse_addr_ranges(args.no_write))
 
@@ -564,17 +558,11 @@ def get_label_names(prgData, instrAddrRngs, args):
 
 def print_cdl_stats(cdlData, prgSize):
     instrByteCnt = sum(len(rng) for rng in cdlData if cdlData[rng] == CDL_CODE)
-    indirDataByteCnt = sum(
-        len(rng) for rng in cdlData if cdlData[rng] == CDL_INDIR_DATA
-    )
-    dirDataByteCnt = sum(
-        len(rng) for rng in cdlData if cdlData[rng] == CDL_DATA
-    )
-    unaccByteCnt = prgSize - instrByteCnt - indirDataByteCnt - dirDataByteCnt
+    dataByteCnt  = sum(len(rng) for rng in cdlData if cdlData[rng] == CDL_DATA)
+    unaccByteCnt = prgSize - instrByteCnt - dataByteCnt
     print("; Bytes in CDL file:")
     print("; - instruction  :", instrByteCnt)
-    print("; - indirect data:", indirDataByteCnt)
-    print("; - direct data  :", dirDataByteCnt)
+    print("; - data         :", dataByteCnt)
     print("; - unaccessed   :", unaccByteCnt)
 
 def opcode_has_zp_equiv(opcode):
@@ -778,9 +766,7 @@ def disassemble(prgData, cdlData, args):
 
     instrAddresses = set(get_instr_addresses(prgData, instrAddrRngs))
     cdlCodeRngs = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
-    cdlDataRngs = {
-        rng for rng in cdlData if cdlData[rng] in (CDL_INDIR_DATA, CDL_DATA)
-    }
+    cdlDataRngs = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
 
     pos = 0  # position in PRG data
     dataStart = None  # where current string of data bytes started

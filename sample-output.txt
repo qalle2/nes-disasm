@@ -6,8 +6,7 @@
 ; - anonymous: 102
 ; Bytes in CDL file:
 ; - instruction  : 3458
-; - indirect data: 416
-; - direct data  : 181
+; - data         : 597
 ; - unaccessed   : 41
 
 ; === Macros ===

@@ -40,43 +40,54 @@ Otherwise ASM6 would optimize the instruction to use zero page addressing instea
 * PRG ROM files larger than 32 KiB are not supported.
 * The PRG file is assumed to be at the end of the 6502 memory space. (That is, the origin address is always 64 KiB minus the PRG file size.)
 * Undocumented 6502 opcodes are not supported.
+* Directly vs. indirectly accessed code and data are not distinguished when parsing CDL files.
 
 ## Command line arguments
 ```
-usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION] [-d DATA_BYTES_PER_LINE] [-a NO_ACCESS]
-                    [-w NO_WRITE] [--no-anonymous-labels] [-l]
+usage: nesdisasm.py [-h] [-c CDL_FILE] [-i INDENTATION]
+                    [-d DATA_BYTES_PER_LINE] [-a NO_ACCESS] [-w NO_WRITE]
+                    [--no-anonymous-labels] [-l]
                     input_file
 
 An NES (6502) disassembler.
 
 positional arguments:
-  input_file            The PRG ROM file to read. Size: 32 KiB or less. (.nes files are not
-                        supported.)
+  input_file            The PRG ROM file to read. Size: 32 KiB or less. (.nes
+                        files are not supported.)
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -c CDL_FILE, --cdl-file CDL_FILE
-                        The FCEUX code/data log file (.cdl) to read. (If you don't specify one,
-                        all PRG ROM bytes will be considered unaccessed.)
+                        The FCEUX code/data log file (.cdl) to read. (If you
+                        don't specify one, all PRG ROM bytes will be
+                        considered unaccessed.)
   -i INDENTATION, --indentation INDENTATION
-                        How many spaces to use for indentation (1 to 100, default=8).
+                        How many spaces to use for indentation (1 to 100,
+                        default=8).
   -d DATA_BYTES_PER_LINE, --data-bytes-per-line DATA_BYTES_PER_LINE
-                        How many data bytes to print per 'hex ...' line (1 to 100, default=8).
+                        How many data bytes to print per 'hex ...' line (1 to
+                        100, default=8).
   -a NO_ACCESS, --no-access NO_ACCESS
-                        Assume the game never interacts with these addresses (using any
-                        instruction with absolute addressing, or indexed absolute with these
-                        addresses as the base address). Zero or more ranges separated by commas. A
-                        range is two 16-bit hexadecimal addresses separated by a hyphen. E.g.
-                        '0800-1fff,2008-3fff,4020-5fff,6000-7fff' = mirrors of RAM, mirrors of PPU
-                        registers, beginning of cartridge space, PRG RAM.
+                        Assume the game never interacts with these addresses
+                        (using any instruction with absolute addressing, or
+                        indexed absolute with these addresses as the base
+                        address). Zero or more ranges separated by commas. A
+                        range is two 16-bit hexadecimal addresses separated by
+                        a hyphen. E.g.
+                        '0800-1fff,2008-3fff,4020-5fff,6000-7fff' = mirrors of
+                        RAM, mirrors of PPU registers, beginning of cartridge
+                        space, PRG RAM.
   -w NO_WRITE, --no-write NO_WRITE
                         Assume the game never writes these addresses (using
-                        STA/STX/STY/DEC/INC/ASL/LSR/ROL/ROR with absolute addressing, or indexed
-                        absolute with these addresses as the base address). Same syntax as in
-                        --no-access. E.g. '8000-ffff' = PRG ROM.
+                        STA/STX/STY/DEC/INC/ASL/LSR/ROL/ROR with absolute
+                        addressing, or indexed absolute with these addresses
+                        as the base address). Same syntax as in --no-access.
+                        E.g. '8000-ffff' = PRG ROM.
   --no-anonymous-labels
-                        Always use named labels instead of anonymous labels ('+' and '-').
-  -l, --list-opcodes    List supported opcodes and exit. (Note: specify a dummy input file.)
+                        Always use named labels instead of anonymous labels
+                        ('+' and '-').
+  -l, --list-opcodes    List supported opcodes and exit. (Note: specify a
+                        dummy input file.)
 ```
 
 There's an example of the output in `sample-output.txt`.
@@ -89,7 +100,3 @@ There's an example of the output in `sample-output.txt`.
 ## To do
 * automatically print CLC followed by ADC as a macro; same for SEC and SBC
 * allow more anonymous labels (e.g. allow an anonymous forward jump to cross an anonymous backward jump and vice versa)
-* distinguish between indirectly and directly accessed data in the disassembly itself
-(we already make the distinction in the statistics)
-* distinguish between indirectly and directly accessed code
-* to implement the above, CDL support may need to be integrated better (perhaps combine `CDL_*` and `ACME_*`)
