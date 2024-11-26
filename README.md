@@ -14,17 +14,17 @@ Table of contents:
 Syntax: *options* *inputFile*
 
 ### Options
-* `-h` or `--help`: print a short summary of this help
+* `-h` or `--help`: print a short summary of this help.
 * `-c FILE` or `--cdl-file FILE`: The FCEUX code/data log file (`.cdl`) to read. (If you don't specify one, all PRG ROM bytes will be considered unaccessed.)
 * `-i INTEGER` or `--indentation INTEGER`: How many spaces to use for indentation (1 to 100, default=16).
-* `-d INTEGER` or `--data-bytes-per-line INTEGER`: How many data bytes to print per `hex &hellip;` line (1 to 100, default=8).
+* `-d INTEGER` or `--data-bytes-per-line INTEGER`: How many data bytes to print per `hex ...` line (1 to 100, default=8).
 * `-a RANGES` or `--no-access RANGES`: Assume the game never reads, writes or executes addresses within these ranges, inclusive
 (using any instruction with absolute addressing, or indexed absolute with these addresses as the base address).
   * `RANGES` is zero or more ranges separated by commas.
   * A range is two 16-bit hexadecimal addresses separated by a hyphen.
   * E.g. `0800-1fff,2008-3fff,4020-5fff,6000-7fff` = mirrors of RAM, mirrors of PPU registers, beginning of cartridge space, PRG RAM.
-* `-w RANGES` or `--no-write RANGES`: Assume the game never writes these addresses (using STA, STX, STY, DEC, INC, ASL, LSR, ROL or ROR with absolute addressing,
-or indexed absolute with these addresses as the base address).
+* `-w RANGES` or `--no-write RANGES`: Assume the game never writes addresses within these ranges, inclusive
+(using STA, STX, STY, DEC, INC, ASL, LSR, ROL or ROR with absolute addressing, or indexed absolute with these addresses as the base address).
   * `RANGES` is zero or more ranges separated by commas.
   * A range is two 16-bit hexadecimal addresses separated by a hyphen.
   * E.g. `8000-ffff` = PRG ROM.
@@ -33,8 +33,8 @@ or indexed absolute with these addresses as the base address).
 
 ### Positional arguments
 * *inputFile*: The raw PRG ROM file to read.
-  * Size: 32 KiB or less.
-  * The PRG file is assumed to be at the end of the 6502 memory space. That is, the origin address is always 64 KiB minus the file size.
+  * Size: 1 byte to 32 KiB.
+  * The file is assumed to be at the end of the 6502 memory space. That is, the origin address is always 64 KiB minus the file size.
   * Note: iNES ROM files (`.nes`) are not supported; to convert one into a raw PRG ROM data file, use `ines_split.py` from [my NES utilities](https://github.com/qalle2/nes-util).
 
 ## Labels
@@ -54,7 +54,7 @@ The disassembler automatically assigns labels to addresses:
 ## CDL files
 The disassembler has a limited support for log files created with FCEUX Code/Data Logger (`.cdl`). If a CDL file is used, PRG ROM bytes are treated as follows according to their corresponding CDL bytes:
 * CDL byte `0bxxxxxxx1` (code or both code and data): attempt to disassemble.
-* CDL byte `0bxxxxxx10` (data only): output as data (`hex &hellip;`).
+* CDL byte `0bxxxxxx10` (data only): output as data (`hex ...`).
 * CDL byte `0b00000000` (unaccessed): attempt to disassemble, or if `--unaccessed-as-data` is used, output as data; in either case, add `(unaccessed)` to the comment.
 
 ## Macros
