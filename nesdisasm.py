@@ -1,4 +1,4 @@
-# an NES (6502) disassembler
+# an NES (6502) disassembler; see https://github.com/qalle2/nes-disasm
 
 import argparse, os, sys
 
@@ -36,70 +36,100 @@ ADDR_MODES = {
     AM_I:   (2, "({})"),
 }
 
-# opcode: (mnemonic, addressing mode);
-# three opcodes per line, but newline before 0x10, 0x20, etc.
-OPCODES = {
-    0x00: ("brk", AM_IMP), 0x01: ("ora", AM_IX),  0x05: ("ora", AM_Z),
-    0x06: ("asl", AM_Z),   0x08: ("php", AM_IMP), 0x09: ("ora", AM_IMM),
-    0x0a: ("asl", AM_AC),  0x0d: ("ora", AM_AB),  0x0e: ("asl", AM_AB),
-    0x10: ("bpl", AM_R),   0x11: ("ora", AM_IY),  0x15: ("ora", AM_ZX),
-    0x16: ("asl", AM_ZX),  0x18: ("clc", AM_IMP), 0x19: ("ora", AM_ABY),
-    0x1d: ("ora", AM_ABX), 0x1e: ("asl", AM_ABX),
-    0x20: ("jsr", AM_AB),  0x21: ("and", AM_IX),  0x24: ("bit", AM_Z),
-    0x25: ("and", AM_Z),   0x26: ("rol", AM_Z),   0x28: ("plp", AM_IMP),
-    0x29: ("and", AM_IMM), 0x2a: ("rol", AM_AC),  0x2c: ("bit", AM_AB),
-    0x2d: ("and", AM_AB),  0x2e: ("rol", AM_AB),
-    0x30: ("bmi", AM_R),   0x31: ("and", AM_IY),  0x35: ("and", AM_ZX),
-    0x36: ("rol", AM_ZX),  0x38: ("sec", AM_IMP), 0x39: ("and", AM_ABY),
-    0x3d: ("and", AM_ABX), 0x3e: ("rol", AM_ABX),
-    0x40: ("rti", AM_IMP), 0x41: ("eor", AM_IX),  0x45: ("eor", AM_Z),
-    0x46: ("lsr", AM_Z),   0x48: ("pha", AM_IMP), 0x49: ("eor", AM_IMM),
-    0x4a: ("lsr", AM_AC),  0x4c: ("jmp", AM_AB),  0x4d: ("eor", AM_AB),
-    0x4e: ("lsr", AM_AB),
-    0x50: ("bvc", AM_R),   0x51: ("eor", AM_IY),  0x55: ("eor", AM_ZX),
-    0x56: ("lsr", AM_ZX),  0x58: ("cli", AM_IMP), 0x59: ("eor", AM_ABY),
-    0x5d: ("eor", AM_ABX), 0x5e: ("lsr", AM_ABX),
-    0x60: ("rts", AM_IMP), 0x61: ("adc", AM_IX),  0x65: ("adc", AM_Z),
-    0x66: ("ror", AM_Z),   0x68: ("pla", AM_IMP), 0x69: ("adc", AM_IMM),
-    0x6a: ("ror", AM_AC),  0x6c: ("jmp", AM_I),   0x6d: ("adc", AM_AB),
-    0x6e: ("ror", AM_AB),
-    0x70: ("bvs", AM_R),   0x71: ("adc", AM_IY),  0x75: ("adc", AM_ZX),
-    0x76: ("ror", AM_ZX),  0x78: ("sei", AM_IMP), 0x79: ("adc", AM_ABY),
-    0x7d: ("adc", AM_ABX), 0x7e: ("ror", AM_ABX),
-    0x81: ("sta", AM_IX),  0x84: ("sty", AM_Z),   0x85: ("sta", AM_Z),
-    0x86: ("stx", AM_Z),   0x88: ("dey", AM_IMP), 0x8a: ("txa", AM_IMP),
-    0x8c: ("sty", AM_AB),  0x8d: ("sta", AM_AB),  0x8e: ("stx", AM_AB),
-    0x90: ("bcc", AM_R),   0x91: ("sta", AM_IY),  0x94: ("sty", AM_ZX),
-    0x95: ("sta", AM_ZX),  0x96: ("stx", AM_ZY),  0x98: ("tya", AM_IMP),
-    0x99: ("sta", AM_ABY), 0x9a: ("txs", AM_IMP), 0x9d: ("sta", AM_ABX),
-    0xa0: ("ldy", AM_IMM), 0xa1: ("lda", AM_IX),  0xa2: ("ldx", AM_IMM),
-    0xa4: ("ldy", AM_Z),   0xa5: ("lda", AM_Z),   0xa6: ("ldx", AM_Z),
-    0xa8: ("tay", AM_IMP), 0xa9: ("lda", AM_IMM), 0xaa: ("tax", AM_IMP),
-    0xac: ("ldy", AM_AB),  0xad: ("lda", AM_AB),  0xae: ("ldx", AM_AB),
-    0xb0: ("bcs", AM_R),   0xb1: ("lda", AM_IY),  0xb4: ("ldy", AM_ZX),
-    0xb5: ("lda", AM_ZX),  0xb6: ("ldx", AM_ZY),  0xb8: ("clv", AM_IMP),
-    0xb9: ("lda", AM_ABY), 0xba: ("tsx", AM_IMP), 0xbc: ("ldy", AM_ABX),
-    0xbd: ("lda", AM_ABX), 0xbe: ("ldx", AM_ABY),
-    0xc0: ("cpy", AM_IMM), 0xc1: ("cmp", AM_IX),  0xc4: ("cpy", AM_Z),
-    0xc5: ("cmp", AM_Z),   0xc6: ("dec", AM_Z),   0xc8: ("iny", AM_IMP),
-    0xc9: ("cmp", AM_IMM), 0xca: ("dex", AM_IMP), 0xcc: ("cpy", AM_AB),
-    0xcd: ("cmp", AM_AB),  0xce: ("dec", AM_AB),
-    0xd0: ("bne", AM_R),   0xd1: ("cmp", AM_IY),  0xd5: ("cmp", AM_ZX),
-    0xd6: ("dec", AM_ZX),  0xd8: ("cld", AM_IMP), 0xd9: ("cmp", AM_ABY),
-    0xdd: ("cmp", AM_ABX), 0xde: ("dec", AM_ABX),
-    0xe0: ("cpx", AM_IMM), 0xe1: ("sbc", AM_IX),  0xe4: ("cpx", AM_Z),
-    0xe5: ("sbc", AM_Z),   0xe6: ("inc", AM_Z),   0xe8: ("inx", AM_IMP),
-    0xe9: ("sbc", AM_IMM), 0xea: ("nop", AM_IMP), 0xec: ("cpx", AM_AB),
-    0xed: ("sbc", AM_AB),  0xee: ("inc", AM_AB),
-    0xf0: ("beq", AM_R),   0xf1: ("sbc", AM_IY),  0xf5: ("sbc", AM_ZX),
-    0xf6: ("inc", AM_ZX),  0xf8: ("sed", AM_IMP), 0xf9: ("sbc", AM_ABY),
-    0xfd: ("sbc", AM_ABX), 0xfe: ("inc", AM_ABX),
+# names of addressing modes in names of macros
+MACRO_ADDR_MODE_NAMES = {
+    AM_AB:  "abs",
+    AM_ABX: "absx",
+    AM_ABY: "absy",
 }
-assert all(0x00 <= o <= 0xff for o in OPCODES)
+
+# enumerate mnemonics
+(
+    I_ADC, I_AND, I_ASL, I_BCC, I_BCS, I_BEQ, I_BIT, I_BMI, I_BNE, I_BPL,
+    I_BRK, I_BVC, I_BVS, I_CLC, I_CLD, I_CLI, I_CLV, I_CMP, I_CPX, I_CPY,
+    I_DEC, I_DEX, I_DEY, I_EOR, I_INC, I_INX, I_INY, I_JMP, I_JSR, I_LDA,
+    I_LDX, I_LDY, I_LSR, I_NOP, I_ORA, I_PHA, I_PHP, I_PLA, I_PLP, I_ROL,
+    I_ROR, I_RTI, I_RTS, I_SBC, I_SEC, I_SED, I_SEI, I_STA, I_STX, I_STY,
+    I_TAX, I_TAY, I_TSX, I_TXA, I_TXS, I_TYA,
+) = range(56)
+
+# mnemonic: string
+MNEMONICS = {
+    I_ADC: "adc", I_AND: "and", I_ASL: "asl", I_BCC: "bcc", I_BCS: "bcs",
+    I_BEQ: "beq", I_BIT: "bit", I_BMI: "bmi", I_BNE: "bne", I_BPL: "bpl",
+    I_BRK: "brk", I_BVC: "bvc", I_BVS: "bvs", I_CLC: "clc", I_CLD: "cld",
+    I_CLI: "cli", I_CLV: "clv", I_CMP: "cmp", I_CPX: "cpx", I_CPY: "cpy",
+    I_DEC: "dec", I_DEX: "dex", I_DEY: "dey", I_EOR: "eor", I_INC: "inc",
+    I_INX: "inx", I_INY: "iny", I_JMP: "jmp", I_JSR: "jsr", I_LDA: "lda",
+    I_LDX: "ldx", I_LDY: "ldy", I_LSR: "lsr", I_NOP: "nop", I_ORA: "ora",
+    I_PHA: "pha", I_PHP: "php", I_PLA: "pla", I_PLP: "plp", I_ROL: "rol",
+    I_ROR: "ror", I_RTI: "rti", I_RTS: "rts", I_SBC: "sbc", I_SEC: "sec",
+    I_SED: "sed", I_SEI: "sei", I_STA: "sta", I_STX: "stx", I_STY: "sty",
+    I_TAX: "tax", I_TAY: "tay", I_TSX: "tsx", I_TXA: "txa", I_TXS: "txs",
+    I_TYA: "tya",
+}
+
+# opcode: (mnemonic, addressing mode)
+OPCODES = {
+    0x00: (I_BRK, AM_IMP), 0x01: (I_ORA, AM_IX),  0x05: (I_ORA, AM_Z),
+    0x06: (I_ASL, AM_Z),   0x08: (I_PHP, AM_IMP), 0x09: (I_ORA, AM_IMM),
+    0x0a: (I_ASL, AM_AC),  0x0d: (I_ORA, AM_AB),  0x0e: (I_ASL, AM_AB),
+    0x10: (I_BPL, AM_R),   0x11: (I_ORA, AM_IY),  0x15: (I_ORA, AM_ZX),
+    0x16: (I_ASL, AM_ZX),  0x18: (I_CLC, AM_IMP), 0x19: (I_ORA, AM_ABY),
+    0x1d: (I_ORA, AM_ABX), 0x1e: (I_ASL, AM_ABX), 0x20: (I_JSR, AM_AB),
+    0x21: (I_AND, AM_IX),  0x24: (I_BIT, AM_Z),   0x25: (I_AND, AM_Z),
+    0x26: (I_ROL, AM_Z),   0x28: (I_PLP, AM_IMP), 0x29: (I_AND, AM_IMM),
+    0x2a: (I_ROL, AM_AC),  0x2c: (I_BIT, AM_AB),  0x2d: (I_AND, AM_AB),
+    0x2e: (I_ROL, AM_AB),  0x30: (I_BMI, AM_R),   0x31: (I_AND, AM_IY),
+    0x35: (I_AND, AM_ZX),  0x36: (I_ROL, AM_ZX),  0x38: (I_SEC, AM_IMP),
+    0x39: (I_AND, AM_ABY), 0x3d: (I_AND, AM_ABX), 0x3e: (I_ROL, AM_ABX),
+    0x40: (I_RTI, AM_IMP), 0x41: (I_EOR, AM_IX),  0x45: (I_EOR, AM_Z),
+    0x46: (I_LSR, AM_Z),   0x48: (I_PHA, AM_IMP), 0x49: (I_EOR, AM_IMM),
+    0x4a: (I_LSR, AM_AC),  0x4c: (I_JMP, AM_AB),  0x4d: (I_EOR, AM_AB),
+    0x4e: (I_LSR, AM_AB),  0x50: (I_BVC, AM_R),   0x51: (I_EOR, AM_IY),
+    0x55: (I_EOR, AM_ZX),  0x56: (I_LSR, AM_ZX),  0x58: (I_CLI, AM_IMP),
+    0x59: (I_EOR, AM_ABY), 0x5d: (I_EOR, AM_ABX), 0x5e: (I_LSR, AM_ABX),
+    0x60: (I_RTS, AM_IMP), 0x61: (I_ADC, AM_IX),  0x65: (I_ADC, AM_Z),
+    0x66: (I_ROR, AM_Z),   0x68: (I_PLA, AM_IMP), 0x69: (I_ADC, AM_IMM),
+    0x6a: (I_ROR, AM_AC),  0x6c: (I_JMP, AM_I),   0x6d: (I_ADC, AM_AB),
+    0x6e: (I_ROR, AM_AB),  0x70: (I_BVS, AM_R),   0x71: (I_ADC, AM_IY),
+    0x75: (I_ADC, AM_ZX),  0x76: (I_ROR, AM_ZX),  0x78: (I_SEI, AM_IMP),
+    0x79: (I_ADC, AM_ABY), 0x7d: (I_ADC, AM_ABX), 0x7e: (I_ROR, AM_ABX),
+    0x81: (I_STA, AM_IX),  0x84: (I_STY, AM_Z),   0x85: (I_STA, AM_Z),
+    0x86: (I_STX, AM_Z),   0x88: (I_DEY, AM_IMP), 0x8a: (I_TXA, AM_IMP),
+    0x8c: (I_STY, AM_AB),  0x8d: (I_STA, AM_AB),  0x8e: (I_STX, AM_AB),
+    0x90: (I_BCC, AM_R),   0x91: (I_STA, AM_IY),  0x94: (I_STY, AM_ZX),
+    0x95: (I_STA, AM_ZX),  0x96: (I_STX, AM_ZY),  0x98: (I_TYA, AM_IMP),
+    0x99: (I_STA, AM_ABY), 0x9a: (I_TXS, AM_IMP), 0x9d: (I_STA, AM_ABX),
+    0xa0: (I_LDY, AM_IMM), 0xa1: (I_LDA, AM_IX),  0xa2: (I_LDX, AM_IMM),
+    0xa4: (I_LDY, AM_Z),   0xa5: (I_LDA, AM_Z),   0xa6: (I_LDX, AM_Z),
+    0xa8: (I_TAY, AM_IMP), 0xa9: (I_LDA, AM_IMM), 0xaa: (I_TAX, AM_IMP),
+    0xac: (I_LDY, AM_AB),  0xad: (I_LDA, AM_AB),  0xae: (I_LDX, AM_AB),
+    0xb0: (I_BCS, AM_R),   0xb1: (I_LDA, AM_IY),  0xb4: (I_LDY, AM_ZX),
+    0xb5: (I_LDA, AM_ZX),  0xb6: (I_LDX, AM_ZY),  0xb8: (I_CLV, AM_IMP),
+    0xb9: (I_LDA, AM_ABY), 0xba: (I_TSX, AM_IMP), 0xbc: (I_LDY, AM_ABX),
+    0xbd: (I_LDA, AM_ABX), 0xbe: (I_LDX, AM_ABY), 0xc0: (I_CPY, AM_IMM),
+    0xc1: (I_CMP, AM_IX),  0xc4: (I_CPY, AM_Z),   0xc5: (I_CMP, AM_Z),
+    0xc6: (I_DEC, AM_Z),   0xc8: (I_INY, AM_IMP), 0xc9: (I_CMP, AM_IMM),
+    0xca: (I_DEX, AM_IMP), 0xcc: (I_CPY, AM_AB),  0xcd: (I_CMP, AM_AB),
+    0xce: (I_DEC, AM_AB),  0xd0: (I_BNE, AM_R),   0xd1: (I_CMP, AM_IY),
+    0xd5: (I_CMP, AM_ZX),  0xd6: (I_DEC, AM_ZX),  0xd8: (I_CLD, AM_IMP),
+    0xd9: (I_CMP, AM_ABY), 0xdd: (I_CMP, AM_ABX), 0xde: (I_DEC, AM_ABX),
+    0xe0: (I_CPX, AM_IMM), 0xe1: (I_SBC, AM_IX),  0xe4: (I_CPX, AM_Z),
+    0xe5: (I_SBC, AM_Z),   0xe6: (I_INC, AM_Z),   0xe8: (I_INX, AM_IMP),
+    0xe9: (I_SBC, AM_IMM), 0xea: (I_NOP, AM_IMP), 0xec: (I_CPX, AM_AB),
+    0xed: (I_SBC, AM_AB),  0xee: (I_INC, AM_AB),  0xf0: (I_BEQ, AM_R),
+    0xf1: (I_SBC, AM_IY),  0xf5: (I_SBC, AM_ZX),  0xf6: (I_INC, AM_ZX),
+    0xf8: (I_SED, AM_IMP), 0xf9: (I_SBC, AM_ABY), 0xfd: (I_SBC, AM_ABX),
+    0xfe: (I_INC, AM_ABX),
+}
+assert all(0x00 <= o <= 0xff           for o in OPCODES)
+assert all(OPCODES[o][0] in MNEMONICS  for o in OPCODES)
 assert all(OPCODES[o][1] in ADDR_MODES for o in OPCODES)
 
-WRITE_INSTRUCTIONS = frozenset((  # can write memory
-    "asl", "dec", "inc", "lsr", "rol", "ror", "sta", "stx", "sty"
+# instructions that can write memory
+WRITE_INSTRUCTIONS = frozenset((
+    I_ASL, I_DEC, I_INC, I_LSR, I_ROL, I_ROR, I_STA, I_STX, I_STY
 ))
 
 # NES memory-mapped registers
@@ -115,12 +145,8 @@ HARDWARE_REGISTERS = {
     0x4011: "dmc_raw",  0x4012: "dmc_start", 0x4013: "dmc_len",
     0x4014: "oam_dma",  0x4015: "snd_chn",   0x4016: "joypad1",
     0x4017: "joypad2",
-    # https://www.nesdev.org/wiki/CPU_Test_Mode
-    0x4018: "apu_test1",  0x4019: "apu_test2",  0x401a: "apu_test3",
-    0x401c: "cpu_timer1", 0x401d: "cpu_timer2", 0x401e: "cpu_timer3",
-    0x401f: "cpu_timer4",
 }
-assert all(0x2000 <= r <= 0x401f for r in HARDWARE_REGISTERS)
+assert all(0x2000 <= a <= 0x4017 for a in HARDWARE_REGISTERS)
 
 # enumerate CDL file chunk types
 (
@@ -129,17 +155,17 @@ assert all(0x2000 <= r <= 0x401f for r in HARDWARE_REGISTERS)
     CDL_DATA,        # accessed as data only
 ) = range(3)
 
-# enumerate label access methods
+# enumerate label access methods (how an instruction accesses an address)
 (
-    ACME_ARRAY,  # array (zeroPage,x / zeroPage,y / absolute,x / absolute,y)
+    ACME_ARRAY,  # array      (zeroPage,x / zeroPage,y / absolute,x / absolute,y)
     ACME_SUB,    # subroutine (JSR)
     ACME_CODE,   # other code (branch / JMP absolute)
-    ACME_DATA,   # data (none of the above)
+    ACME_DATA,   # data       (none of the above)
 ) = range(4)
 
 # bitmasks for CDL bytes
-CDL_CODE_MASK = 0b00000001
-CDL_DATA_MASK = 0b00000010
+CDL_CODE_MASK = 0b0000_0001
+CDL_DATA_MASK = 0b0000_0010
 
 # --- Help and argument parsing -----------------------------------------------
 
@@ -147,9 +173,10 @@ def list_opcodes():
     # list supported opcodes
     for opcode in sorted(OPCODES):
         (mnemonic, addrMode) = OPCODES[opcode]
+        mnemonicStr = MNEMONICS[mnemonic]
         (operandSize, operandFormat) = ADDR_MODES[addrMode]
         addrModeStr = operandFormat.format(operandSize * "nn")
-        print(f"0x{opcode:02x} = {mnemonic} {addrModeStr}")
+        print(f"0x{opcode:02x} = {mnemonicStr} {addrModeStr}")
 
 def parse_addr_ranges(arg):
     # generate ranges from a string of comma-separated 16-bit address ranges;
@@ -173,53 +200,18 @@ def parse_args():
     # parse command line arguments using argparse
     # note: indentation 0 forbidden as "0s" is an invalid string format code
 
-    parser = argparse.ArgumentParser(description="An NES (6502) disassembler.")
+    parser = argparse.ArgumentParser(
+        description="An NES (6502) disassembler. See README.md for help."
+    )
 
-    parser.add_argument(
-        "-c", "--cdl-file", type=str, default="",
-        help="The FCEUX code/data log file (.cdl) to read. (If you don't "
-        "specify one, all PRG ROM bytes will be considered unaccessed.)"
-    )
-    parser.add_argument(
-        "-i", "--indentation", type=int, default=8,
-        help="How many spaces to use for indentation (1 to 100, default=8)."
-    )
-    parser.add_argument(
-        "-d", "--data-bytes-per-line", type=int, default=8,
-        help="How many data bytes to print per 'hex ...' line (1 to 100, "
-        "default=8)."
-    )
-    parser.add_argument(
-        "-a", "--no-access", type=str, default="",
-        help="Assume the game never interacts with these addresses (using any "
-        "instruction with absolute addressing, or indexed absolute with these "
-        "addresses as the base address). Zero or more ranges separated by "
-        "commas. A range is two 16-bit hexadecimal addresses separated by a "
-        "hyphen. E.g. '0800-1fff,2008-3fff,4020-5fff,6000-7fff' = mirrors of "
-        "RAM, mirrors of PPU registers, beginning of cartridge space, PRG RAM."
-    )
-    parser.add_argument(
-        "-w", "--no-write", type=str, default="",
-        help="Assume the game never writes these addresses (using STA/STX/STY/"
-        "DEC/INC/ASL/LSR/ROL/ROR with absolute addressing, or indexed "
-        "absolute with these addresses as the base address). Same syntax as "
-        "in --no-access. E.g. '8000-ffff' = PRG ROM."
-    )
-    parser.add_argument(
-        "--no-anonymous-labels", action="store_true",
-        help="Always use named labels instead of anonymous labels ('+' and "
-        "'-')."
-    )
-    parser.add_argument(
-        "-l", "--list-opcodes", action="store_true",
-        help="List supported opcodes and exit. (Note: specify a dummy input "
-        "file.)"
-    )
-    parser.add_argument(
-        "input_file",
-        help="The PRG ROM file to read. Size: 32 KiB or less. (.nes files are "
-        "not supported.)"
-    )
+    parser.add_argument("-c", "--cdl-file",            type=str, default="")
+    parser.add_argument("-i", "--indentation",         type=int, default=16)
+    parser.add_argument("-d", "--data-bytes-per-line", type=int, default=8)
+    parser.add_argument("-a", "--no-access",           type=str, default="")
+    parser.add_argument("-w", "--no-write",            type=str, default="")
+    parser.add_argument(      "--no-anonymous-labels", action="store_true")
+    parser.add_argument("-l", "--list-opcodes",        action="store_true")
+    parser.add_argument("input_file")
 
     args = parser.parse_args()
 
@@ -228,13 +220,14 @@ def parse_args():
         exit()
 
     if not 1 <= args.indentation <= 100:
-        sys.exit("Invalid indentation argument.")
+        sys.exit("Indentation must be 1 to 100.")
     if not 1 <= args.data_bytes_per_line <= 100:
-        sys.exit("Invalid 'data bytes per line' argument.")
-    list(parse_addr_ranges(args.no_access))
-    list(parse_addr_ranges(args.no_write))
+        sys.exit("'Data bytes per line' must be 1 to 100.")
+    list(parse_addr_ranges(args.no_access))  # just validate
+    list(parse_addr_ranges(args.no_write))   # just validate
+
     if not os.path.isfile(args.input_file):
-        sys.exit("PRG file not found.")
+        sys.exit("PRG ROM file not found.")
     if args.cdl_file and not os.path.isfile(args.cdl_file):
         sys.exit("CDL file not found.")
 
@@ -262,8 +255,8 @@ def read_cdl_file(handle, prgSize):
     handle.seek(cdlStart)
     cdlData = handle.read(prgSize)
 
-    chunkStart = None           # start address of current chunk
-    chunkType = CDL_UNACCESSED  # type of current chunk
+    chunkStart = None            # start address of current chunk
+    chunkType  = CDL_UNACCESSED  # type          of current chunk
 
     for (pos, byte) in enumerate(cdlData):
         byteType = get_cdl_byte_type(byte)
@@ -273,12 +266,12 @@ def read_cdl_file(handle, prgSize):
                 yield (range(chunkStart, pos), chunkType)
                 chunkType = CDL_UNACCESSED
             if byteType != CDL_UNACCESSED:
-                # start new chunk
+                # start a new chunk
                 chunkStart = pos
-                chunkType = byteType
+                chunkType  = byteType
 
     if chunkType != CDL_UNACCESSED:
-        yield (range(chunkStart, prgSize), chunkType)  # end last chunk
+        yield (range(chunkStart, prgSize), chunkType)  # end the last chunk
 
 # --- Disassembly (not output) ------------------------------------------------
 
@@ -291,8 +284,8 @@ def decode_16bit_addr(byte1, byte2):
 def decode_rel_addr(pc, offset):
     # decode program counter relative address (note: result may be outside
     # 0x0000-0xffff)
-    assert 0x0000 <= pc <= 0xffff
-    assert 0x00 <= offset <= 0xff
+    assert 0x0000 <= pc     <= 0xffff
+    assert 0x00   <= offset <= 0xff
     return pc + 2 - (offset & 0x80) + (offset & 0x7f)
 
 def is_operand_valid(instrBytes, prgAddr, prgDataLen, noAccess, noWrite):
@@ -306,9 +299,9 @@ def is_operand_valid(instrBytes, prgAddr, prgDataLen, noAccess, noWrite):
         # direct absolute (must not access or write an excluded address)
         addr = decode_16bit_addr(instrBytes[1], instrBytes[2])
         return not (
-            any(addr in r for r in noAccess)
-            or mnemonic in WRITE_INSTRUCTIONS
-            and any(addr in r for r in noWrite)
+            mnemonic in WRITE_INSTRUCTIONS
+            and any(addr in r for r in noWrite )
+            or  any(addr in r for r in noAccess)
         )
 
     if addrMode == AM_R:  # relative (target must be within PRG ROM)
@@ -333,15 +326,15 @@ def get_instr_addr_ranges(prgData, cdlData, args):
     # generate PRG address ranges of instructions from PRG data
     # cdlData: {address_range: chunk_type, ...}, yield: one range per call
 
-    cdlCodeRngs = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
-    cdlDataRngs = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
-    noAccess = set(parse_addr_ranges(args.no_access))
-    noWrite  = set(parse_addr_ranges(args.no_write))
+    cdlCodeRngs = set(rng for rng in cdlData if cdlData[rng] == CDL_CODE)
+    cdlDataRngs = set(rng for rng in cdlData if cdlData[rng] == CDL_DATA)
+    noAccess    = set(parse_addr_ranges(args.no_access))
+    noWrite     = set(parse_addr_ranges(args.no_write))
 
     origin = 0x10000 - len(prgData)
 
     codeStart = None  # start of current code chunk
-    pos = 0  # position in PRG data
+    pos       = 0     # position in PRG data
 
     # quite similar to main loops elsewhere
     while pos < len(prgData):
@@ -368,7 +361,7 @@ def get_instr_addr_ranges(prgData, cdlData, args):
 
         if isInstruction:
             if codeStart is None:
-                codeStart = pos  # start new code chunk
+                codeStart = pos  # start a new code chunk
             pos += 1 + operandSize
         else:  # data byte
             if codeStart is not None:
@@ -394,9 +387,9 @@ def get_access_method(mnemonic, addrMode):
     # how does the instruction access its operand; see ACME_... enumeration
     if addrMode in (AM_ZX, AM_ZY, AM_ABX, AM_ABY):
         return ACME_ARRAY
-    if mnemonic == "jsr":
+    if mnemonic == I_JSR:
         return ACME_SUB
-    if mnemonic == "jmp" and addrMode == AM_AB or addrMode == AM_R:
+    if mnemonic == I_JMP and addrMode == AM_AB or addrMode == AM_R:
         return ACME_CODE
     return ACME_DATA
 
@@ -411,11 +404,11 @@ def get_label_stats(prgData, instrAddrRngs):
     #     ], ...
     # }
 
-    instrAddresses = set()  # PRG addresses of instructions
-    labelStats = {}  # see function description
-
     origin = 0x10000 - len(prgData)
-    pos = 0  # position in PRG ROM
+
+    instrAddresses = set()  # PRG addresses of instructions
+    labelStats     = {}     # same type as this function's return value
+    pos            = 0      # position in PRG ROM
 
     for pos in get_instr_addresses(prgData, instrAddrRngs):
         instrAddresses.add(pos)
@@ -443,7 +436,7 @@ def get_label_stats(prgData, instrAddrRngs):
             else:
                 labelStats[addr] = [{accessMethod,}, referrer, referrer]
 
-    # only keep labels that refer to:
+    # only keep labels that refer to any of these:
     # - outside of PRG ROM
     # - first bytes of instructions
     # - data
@@ -464,11 +457,13 @@ def get_anon_labels_frw(prgCodeLabels, labelStats, anonLabelsBkw):
     for addr in prgCodeLabels:
         # - must be within forward branch range from all references
         # - there must be no labels other than "-" in between
-        if labelStats[addr][2] < addr <= labelStats[addr][1] + 2 + 127 \
-        and not any(
-            labelStats[addr][1] < otherAddr < addr
-            and otherAddr not in anonLabelsBkw
-            for otherAddr in labelStats
+        if (
+            labelStats[addr][2] < addr <= labelStats[addr][1] + 2 + 127
+            and not any(
+                labelStats[addr][1] < otherAddr < addr
+                and otherAddr not in anonLabelsBkw
+                for otherAddr in labelStats
+            )
         ):
             yield addr
 
@@ -479,11 +474,13 @@ def get_anon_labels_bkw(prgCodeLabels, labelStats, anonLabelsFrw):
     for addr in prgCodeLabels:
         # - must be within backward branch range from all references
         # - there must be no labels other than "+" in between
-        if labelStats[addr][2] + 2 - 128 <= addr <= labelStats[addr][1] \
-        and not any(
-            addr < otherAddr < labelStats[addr][2]
-            and otherAddr not in anonLabelsFrw
-            for otherAddr in labelStats
+        if (
+            labelStats[addr][2] + 2 - 128 <= addr <= labelStats[addr][1]
+            and not any(
+                addr < otherAddr < labelStats[addr][2]
+                and otherAddr not in anonLabelsFrw
+                for otherAddr in labelStats
+            )
         ):
             yield addr
 
@@ -493,29 +490,29 @@ def get_label_names(prgData, instrAddrRngs, args):
     labelStats = get_label_stats(prgData, instrAddrRngs)
 
     # 0x0000-0x1fff
-    ramLabels = {addr for addr in labelStats if addr <= 0x1fff}
+    ramLabels = set(addr for addr in labelStats if addr <= 0x1fff)
     # accessed at least once as an array
     addresses = sorted(
         addr for addr in ramLabels if ACME_ARRAY in labelStats[addr][0]
     )
-    yield from ((addr, f"arr{i+1}") for (i, addr) in enumerate(addresses))
+    yield from ((a, f"arr{i+1}") for (i, a) in enumerate(addresses))
     # never accessed as an array
     addresses = sorted(
         addr for addr in ramLabels if ACME_ARRAY not in labelStats[addr][0]
     )
-    yield from ((addr, f"ram{i+1}") for (i, addr) in enumerate(addresses))
+    yield from ((a, f"ram{i+1}") for (i, a) in enumerate(addresses))
     del ramLabels
 
     # 0x2000-0x7fff
     # hardware registers
     addresses = sorted(set(labelStats) & set(HARDWARE_REGISTERS))
-    yield from ((addr, HARDWARE_REGISTERS[addr]) for addr in addresses)
+    yield from ((a, HARDWARE_REGISTERS[a]) for a in addresses)
     # other
     addresses = sorted(
         addr for addr in set(labelStats) - set(HARDWARE_REGISTERS)
         if 0x2000 <= addr <= 0x7fff
     )
-    yield from ((addr, f"misc{i+1}") for (i, addr) in enumerate(addresses))
+    yield from ((a, f"misc{i+1}") for (i, a) in enumerate(addresses))
 
     # anonymous PRG ROM labels
     anonLabelsFrw = set()  # forwards  ("+")
@@ -524,7 +521,7 @@ def get_label_names(prgData, instrAddrRngs, args):
         # addresses only referred to by branches or direct jumps
         prgCodeLabels = {
             addr for addr in labelStats
-            if addr >= 0x8000 and labelStats[addr][0] == {ACME_CODE,}
+            if addr >= 0x8000 and labelStats[addr][0] == set((ACME_CODE,))
         }
         # look for "+" labels, then "-" labels, then "+" labels again
         anonLabelsFrw.update(
@@ -541,38 +538,40 @@ def get_label_names(prgData, instrAddrRngs, args):
         yield from ((addr, "-") for addr in anonLabelsBkw)
 
     # named PRG ROM labels
-    namedPrgLabels = {addr for addr in set(labelStats) if addr >= 0x8000} \
-    - anonLabelsFrw - anonLabelsBkw
+    namedPrgLabels = (
+        set(addr for addr in set(labelStats) if addr >= 0x8000)
+        - anonLabelsFrw - anonLabelsBkw
+    )
     del anonLabelsFrw, anonLabelsBkw
     # subs
     addresses = sorted(
         addr for addr in namedPrgLabels
         if ACME_SUB in labelStats[addr][0]
     )
-    yield from ((addr, f"sub{i+1}") for (i, addr) in enumerate(addresses))
+    yield from ((a, f"sub{i+1}") for (i, a) in enumerate(addresses))
     # other code
     addresses = sorted(
         addr for addr in namedPrgLabels
         if  ACME_SUB  not in labelStats[addr][0]
         and ACME_CODE     in labelStats[addr][0]
     )
-    yield from ((addr, f"cod{i+1}") for (i, addr) in enumerate(addresses))
+    yield from ((a, f"cod{i+1}") for (i, a) in enumerate(addresses))
     # data
     addresses = sorted(
         addr for addr in namedPrgLabels
         if  ACME_SUB  not in labelStats[addr][0]
         and ACME_CODE not in labelStats[addr][0]
     )
-    yield from ((addr, f"dat{i+1}") for (i, addr) in enumerate(addresses))
+    yield from ((a, f"dat{i+1}") for (i, a) in enumerate(addresses))
 
-def has_opcode_zp_equiv(opcode):
+def opcode_has_zp_equiv(opcode):
     # is the opcode an absolute/absolute,x/absolute,y opcode that has a zero
     # page equivalent?
     (mnemonic, addrMode) = OPCODES[opcode]
     return (
-        addrMode == AM_AB and mnemonic not in ("jmp", "jsr")
+           addrMode == AM_AB  and mnemonic not in (I_JMP, I_JSR)
         or addrMode == AM_ABX
-        or addrMode == AM_ABY and mnemonic == "ldx"
+        or addrMode == AM_ABY and mnemonic == I_LDX
     )
 
 def get_needed_macros(prgData, instrAddrRngs):
@@ -593,7 +592,7 @@ def get_needed_macros(prgData, instrAddrRngs):
         else:
             # data
             pos += 1
-    return {o for o in opcodes if has_opcode_zp_equiv(o)}
+    return set(o for o in opcodes if opcode_has_zp_equiv(o))
 
 # --- Output ------------------------------------------------------------------
 
@@ -607,28 +606,31 @@ def print_cdl_stats(cdlData, prgSize):
     print("; - unaccessed   :", unaccByteCnt)
 
 def print_comment_heading(text):
-    # print "; --- text ---"... to 79 characters
+    # print "; --- text ---"... padded to 79 characters
     print(f"; --- {text} " + (max(0, 79 - 7 - len(text))) * "-")
 
 def format_literal(n, bits=8, base=16):
     # format an ASM6 integer literal
-    if bits == 8 and 0 <= n <= 0xff and base == 2:
-        return f"%{n:08b}"
-    if bits == 8 and 0 <= n <= 0xff and base == 16:
-        return f"${n:02x}"
+    if bits == 8 and 0 <= n <= 0xff:
+        if base == 2:
+            return f"%{n:08b}"
+        if base == 10:
+            return f"{n}"
+        if base == 16:
+            return f"${n:02x}"
     if bits == 16 and 0 <= n <= 0xffff and base == 16:
         return f"${n:04x}"
     raise ValueError
 
 def print_data_line(label, bytes_, origin, prgAddr, cdlDataRngs, args):
-    # print data line (as 2 lines if label is too long)
+    # print data line (as two lines if label is too long)
 
     if len(label) > args.indentation - 1:
         print(label)
         label = ""
 
     maxInstructionWidth = args.data_bytes_per_line * 3 + 5
-    isUnaccessed = not any(prgAddr in rng for rng in cdlDataRngs)
+    isAccessed = any(prgAddr in rng for rng in cdlDataRngs)
 
     print(
         format(label, f"{args.indentation}s")
@@ -637,15 +639,15 @@ def print_data_line(label, bytes_, origin, prgAddr, cdlDataRngs, args):
             f"{maxInstructionWidth}s"
         )
         + f"; {origin+prgAddr:04x}"
-        + (11 * " " + "(unaccessed)" if isUnaccessed else "")
+        + ("" if isAccessed else 11 * " " + "(unaccessed)")
     )
 
 def print_data_lines(data, origin, prgAddr, labels, cdlDataRngs, args):
     # print lines with data bytes
     # labels: dict
 
-    startOffset = 0  # current block
-    prevLabel = ""
+    startOffset = 0   # current block
+    prevLabel   = ""
 
     for (offset, byte) in enumerate(data):
         label = labels.get(origin + prgAddr + offset, "")
@@ -674,7 +676,12 @@ def format_operand_value(instrBytes, prgAddr, labels):
     if addrMode in (AM_IMP, AM_AC):
         return ""
     if addrMode == AM_IMM:
-        base = 2 if mnemonic in ("and", "eor", "ora") else 16
+        if mnemonic in (I_AND, I_EOR, I_ORA):
+            base = 2
+        elif instrBytes[1] <= 9:
+            base = 10
+        else:
+            base = 16
         return format_literal(instrBytes[1], 8, base)
     if addrMode in (AM_Z, AM_ZX, AM_ZY, AM_IX, AM_IY, AM_R):
         # 1-byte address
@@ -689,7 +696,7 @@ def format_operand_value(instrBytes, prgAddr, labels):
     addr = decode_16bit_addr(instrBytes[1], instrBytes[2])
     return labels.get(addr, format_literal(addr, 16))
 
-def print_instr(label, cpuAddr, instrBytes, operand, isUnaccessed, args):
+def print_instr(label, cpuAddr, instrBytes, operand, isAccessed, args):
     # print instruction line (as 2 lines if label is too long)
     # operand: formatted operand
 
@@ -697,13 +704,12 @@ def print_instr(label, cpuAddr, instrBytes, operand, isUnaccessed, args):
         print(label)
         label = ""
 
-    if has_opcode_zp_equiv(instrBytes[0]) and instrBytes[2] == 0x00:
+    if opcode_has_zp_equiv(instrBytes[0]) and instrBytes[2] == 0x00:
         # use macro instead of mnemonic
         (mnemonic, addrMode) = OPCODES[instrBytes[0]]
-        addrModeName = {AM_AB: "abs", AM_ABX: "absx", AM_ABY: "absy"}[addrMode]
-        mnemonic = f"{mnemonic}_{addrModeName}"
+        mnemonic = MNEMONICS[mnemonic] + "_" + MACRO_ADDR_MODE_NAMES[addrMode]
     else:
-        mnemonic = OPCODES[instrBytes[0]][0]
+        mnemonic = MNEMONICS[OPCODES[instrBytes[0]][0]]
 
     instrBytesHex = " ".join(f"{b:02x}" for b in instrBytes)
 
@@ -712,8 +718,8 @@ def print_instr(label, cpuAddr, instrBytes, operand, isUnaccessed, args):
         + format(mnemonic + " " + operand, f"{args.data_bytes_per_line*3+5}s")
         + f"; {cpuAddr:04x}: {instrBytesHex}"
         + (
-            (9 - len(instrBytesHex)) * " " + "(unaccessed)" if isUnaccessed
-            else ""
+            "" if isAccessed
+            else (9 - len(instrBytesHex)) * " " + "(unaccessed)"
         )
     )
 
@@ -744,8 +750,9 @@ def disassemble(prgData, cdlData, args):
     print("; operands <= $ff")
     for opcode in sorted(get_needed_macros(prgData, instrAddrRngs)):
         (mnemonic, addrMode) = OPCODES[opcode]
-        addrModeName = {AM_AB: "abs", AM_ABX: "absx", AM_ABY: "absy"}[addrMode]
-        print(f"macro {mnemonic}_{addrModeName} _zp")
+        print("macro {}_{} _zp".format(
+            MNEMONICS[mnemonic], MACRO_ADDR_MODE_NAMES[addrMode]
+        ))
         print(args.indentation * " " + f"db ${opcode:02x}, _zp, $00")
         print("endm")
     print()
@@ -779,8 +786,8 @@ def disassemble(prgData, cdlData, args):
     print()
 
     instrAddresses = set(get_instr_addresses(prgData, instrAddrRngs))
-    cdlCodeRngs = {rng for rng in cdlData if cdlData[rng] == CDL_CODE}
-    cdlDataRngs = {rng for rng in cdlData if cdlData[rng] == CDL_DATA}
+    cdlCodeRngs = set(rng for rng in cdlData if cdlData[rng] == CDL_CODE)
+    cdlDataRngs = set(rng for rng in cdlData if cdlData[rng] == CDL_DATA)
 
     pos = 0  # position in PRG data
     dataStart = None  # where current string of data bytes started
@@ -807,10 +814,10 @@ def disassemble(prgData, cdlData, args):
             operand = operandFormat.format(
                 format_operand_value(instrBytes, origin + pos, labels)
             )
-            isUnaccessed = not any(pos in r for r in cdlCodeRngs)
+            isAccessed = any(pos in r for r in cdlCodeRngs)
 
             print_instr(
-                label, origin + pos, instrBytes, operand, isUnaccessed, args
+                label, origin + pos, instrBytes, operand, isAccessed, args
             )
 
             pos += 1 + operandSize
@@ -818,7 +825,7 @@ def disassemble(prgData, cdlData, args):
         else:
             # data
 
-            accessed = any(pos in rng for rng in cdlDataRngs)
+            accessed = any(pos in r for r in cdlDataRngs)
 
             if dataStart is None or accessed != prevDataBlockAccessed:
                 if dataStart is not None:
@@ -830,7 +837,7 @@ def disassemble(prgData, cdlData, args):
                         cdlDataRngs, args
                     )
                     prevBlockWasData = True
-                # start new data block
+                # start a new data block
                 dataStart = pos
                 prevDataBlockAccessed = accessed
 
@@ -853,18 +860,16 @@ def main():
             handle.seek(0)
             prgData = handle.read()
     except OSError:
-        sys.exit("Error reading PRG file.")
+        sys.exit("Error reading PRG ROM file.")
 
     if not 1 <= len(prgData) <= 32 * 1024:
-        sys.exit("Invalid PRG file size.")
+        sys.exit("PRG ROM file size must be 1 byte to 32 KiB.")
 
     # read CDL file
     if args.cdl_file:
         try:
             if os.path.getsize(args.cdl_file) < len(prgData):
-                sys.exit(
-                    "The CDL file must be at least as large as the PRG file."
-                )
+                sys.exit("The CDL file must not be smaller than the PRG file.")
             with open(args.cdl_file, "rb") as handle:
                 cdlData = dict(read_cdl_file(handle, len(prgData)))
         except OSError:

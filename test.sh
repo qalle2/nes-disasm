@@ -3,12 +3,12 @@
 clear
 rm -f test-out/*.asm test-out/*.bin
 
-echo "=== Assembling ==="
+echo "=== Assembling with ASM6 ==="
 asm6 test-in/allinstr.asm test-out/allinstr.bin
 asm6 test-in/anontest.asm test-out/anontest.bin
 echo
 
-echo "=== Disassembling ==="
+echo "=== Disassembling with nesdisasm.py ==="
 python3 nesdisasm.py \
     test-out/allinstr.bin > test-out/allinstr.asm
 python3 nesdisasm.py \
@@ -39,7 +39,7 @@ python3 nesdisasm.py \
     test-in/smb1-w.bin > test-out/smb1.asm
 echo
 
-echo "=== Reassembling ==="
+echo "=== Reassembling with ASM6 ==="
 asm6 test-out/allinstr.asm         test-out/allinstr2.bin
 asm6 test-out/anontest.asm         test-out/anontest2.bin
 asm6 test-out/anontest-noanon.asm  test-out/anontest3.bin
