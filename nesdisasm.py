@@ -708,6 +708,8 @@ def print_instr(label, cpuAddr, instrBytes, operand, isAccessed, args):
         # use macro instead of mnemonic
         (mnemonic, addrMode) = OPCODES[instrBytes[0]]
         mnemonic = MNEMONICS[mnemonic] + "_" + MACRO_ADDR_MODE_NAMES[addrMode]
+        if operand.endswith(",x") or operand.endswith(",y"):
+            operand = operand[:-2]
     else:
         mnemonic = MNEMONICS[OPCODES[instrBytes[0]][0]]
 
