@@ -1,4 +1,6 @@
 # nes-disasm
+*Note: This project has been moved to [Codeberg](https://codeberg.org/qalle/qnesdisasm). This version will no longer be updated.*
+
 An NES (6502) disassembler. The output is compatible with [ASM6](https://www.romhacking.net/utilities/674). There's an example of the output in `sample-output.txt`.
 
 Table of contents:
